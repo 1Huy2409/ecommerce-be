@@ -5,7 +5,6 @@ import { UserModule } from './modules/user/user.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from './database/entities/user.entity';
-import { SharedModule } from './modules/shared/shared.module';
 @Module({
   imports: [ConfigModule.forRoot({
     isGlobal: true,
@@ -21,7 +20,7 @@ import { SharedModule } from './modules/shared/shared.module';
     autoLoadEntities: true,
     synchronize: true
   }),
-  AuthModule, ProductModule, UserModule, SharedModule],
+  AuthModule, ProductModule, UserModule],
   controllers: [],
   providers: [],
 })

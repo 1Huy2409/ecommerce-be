@@ -1,5 +1,7 @@
-import { BadRequestException, ConflictException, Injectable } from "@nestjs/common";
+import { BadRequestException, ConflictException, Injectable, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
+import { Req } from "@nestjs/common"
+import { Request } from "express"
 import { User } from "src/database/entities/user.entity";
 import { RegisterDTO } from "./dto/register.dto";
 import { LoginDTO } from "./dto/login.dto";
@@ -63,5 +65,33 @@ export class AuthService {
             password: hashedPassword
         });
         return this.usersRepository.save(newUser)
+    }
+    async refreshToken(@Req() req: Request): Promise<{accessToken: string}>
+    {
+        const refreshToken = req.cookies['refreshToken'];
+        if (!refreshToken)
+        {
+            throw new UnauthorizedException("Refresh token not found!")
+        }
+        const decode = await this.jwtService.verifyAsync(refreshToken, {
+            secret: process.env.JWT_SECRET
+        })
+        const {sub, username, email} = decode
+        const newPayload = {sub, username, email}
+        const newAccessToken = await this.jwtService.signAsync(newPayload)
+        return {
+            accessToken: newAccessToken
+        }
+    }
+    async logout(@Req() req: Request): Promise<{message: string}>
+    {
+        const refreshToken = req.cookies['refreshToken'];
+        if (!refreshToken)
+        {
+            throw new UnauthorizedException("Refresh token not found!")
+        }
+        return {
+            message: 'Logout successfully!'
+        }
     }
 }
