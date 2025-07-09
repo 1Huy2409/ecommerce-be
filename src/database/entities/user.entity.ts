@@ -15,6 +15,14 @@ export class User {
     @Column({ unique: true })
     email: string;
 
+    @Column({ type: 'jsonb', nullable: true })
+    providers: {
+        google?: {
+            id: string,
+            email: string
+        }
+    }
+
     @Column()
     password: string;
 }

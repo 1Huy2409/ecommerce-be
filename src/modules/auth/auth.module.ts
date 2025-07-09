@@ -6,10 +6,11 @@ import { User } from "src/database/entities/user.entity";
 import { JwtModule } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
 import { APP_GUARD } from "@nestjs/core";
-import { AuthGuard } from "./auth.guard";
+import { AuthGuard } from "../../core/guards/auth.guard";
+import { GoogleStrategy } from "./strategies/google.strategy";
 @Module({
     imports: [
-        TypeOrmModule.forFeature([User]), 
+        TypeOrmModule.forFeature([User]),
         JwtModule.registerAsync({
             inject: [ConfigService],
             useFactory: (config: ConfigService) => ({
@@ -17,7 +18,7 @@ import { AuthGuard } from "./auth.guard";
                 signOptions: {
                     expiresIn: config.get<string>('JWT_EXPIRE')
                 }
-            })      
+            })
         })
     ],
     exports: [AuthModule],
@@ -26,7 +27,8 @@ import { AuthGuard } from "./auth.guard";
         {
             provide: APP_GUARD,
             useClass: AuthGuard
-        }
-    ] 
+        },
+        GoogleStrategy
+    ]
 })
-export class AuthModule {}
+export class AuthModule { }
