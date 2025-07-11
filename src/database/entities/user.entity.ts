@@ -1,6 +1,7 @@
-import { Entity, Column, PrimaryGeneratedColumn } from "typeorm";
-
-
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany, OneToOne } from "typeorm";
+import { Role } from "./role.entity";
+import { Order } from "./order.entity";
+import { Cart } from "./cart.entity";
 @Entity("users")
 export class User {
     @PrimaryGeneratedColumn()
@@ -23,6 +24,32 @@ export class User {
         }
     }
 
+    @Column({ default: true })
+    isActive: boolean
+
+    @ManyToOne(() => Role, (role) => role.users, {
+        nullable: false,
+        onDelete: 'RESTRICT'
+    })
+    @JoinColumn({ name: 'role_id' })
+    role: Role
+
+    @OneToMany(() => Order, (order) => order.user)
+    orders: Order[]
+
+    @OneToOne(() => Cart, (cart) => cart.user)
+    cart: Cart
+
+    @Column({ unique: true, nullable: true })
+    phone_number: string
+
     @Column()
     password: string;
+
+    @CreateDateColumn()
+    created_at: Date
+
+    @UpdateDateColumn()
+    updated_at: Date
+
 }
