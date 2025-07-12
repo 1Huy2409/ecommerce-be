@@ -4,7 +4,6 @@ import { ProductModule } from './modules/product/product.module';
 import { UserModule } from './modules/user/user.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from './database/entities/user.entity';
 @Module({
   imports: [ConfigModule.forRoot({
     isGlobal: true,
@@ -16,12 +15,14 @@ import { User } from './database/entities/user.entity';
     username: process.env.DB_USERNAME,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
-    entities: [User],
+    entities: ['dist/database/entities/*.entity.ts'],
+    logging: true,
+    migrations: ['dist/database/migrations/*.ts'],
     autoLoadEntities: true,
-    synchronize: true
+    synchronize: false
   }),
-  AuthModule, ProductModule, UserModule],
+    AuthModule, ProductModule, UserModule],
   controllers: [],
   providers: [],
 })
-export class AppModule {}
+export class AppModule { }

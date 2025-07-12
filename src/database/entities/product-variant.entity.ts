@@ -1,0 +1,37 @@
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, JoinColumn } from "typeorm";
+import { OrderItem } from "./order-item.entity";
+import { CartItem } from "./cart-item.entity";
+import { Product } from "./product.entity";
+@Entity("product_variants")
+export class ProductVariant {
+    @PrimaryGeneratedColumn('uuid')
+    id: string
+
+    @Column({ type: 'decimal', precision: 4, scale: 1 })
+    size: number
+
+    @Column({ unique: true, length: 100, nullable: true })
+    sku: string;
+
+    @Column({ type: 'decimal', precision: 10, scale: 2, default: 0.00 })
+    additionalPrice: number;
+
+    @Column({ type: 'int', default: 0 })
+    stockQuantity: number;
+
+    @Column({ type: 'text', nullable: true })
+    imageUrl: string;
+
+    @ManyToOne(() => Product, (product) => product.variants, {
+        nullable: false,
+        onDelete: 'CASCADE',
+    })
+    @JoinColumn({ name: 'product_id' })
+    product: Product;
+
+    @OneToMany(() => CartItem, (cartItem) => cartItem.productVariant)
+    cartItems: CartItem[];
+
+    @OneToMany(() => OrderItem, (orderItem) => orderItem.productVariant)
+    orderItems: OrderItem[];
+}
