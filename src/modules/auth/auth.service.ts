@@ -3,6 +3,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Req } from "@nestjs/common"
 import { Request } from "express"
 import { User } from "src/database/entities/user.entity";
+import { Role } from "src/database/entities/role.entity";
 import { RegisterDTO } from "./dto/register.dto";
 import { LoginDTO } from "./dto/login.dto";
 import { Repository } from "typeorm";
@@ -14,6 +15,8 @@ export class AuthService {
     constructor(
         @InjectRepository(User)
         private usersRepository: Repository<User>,
+        @InjectRepository(Role)
+        private rolesRepository: Repository<Role>,
         private jwtService: JwtService
     ) { }
     async login(credential: LoginDTO): Promise<{ accessToken: string, refreshToken: string }> {
@@ -75,13 +78,18 @@ export class AuthService {
             }
         }
         const hashedPassword = await bcrypt.hash(password, 10)
-        const newUser = this.usersRepository.create({
+        const customerRole: Role | null = await this.rolesRepository.findOne({ where: { name: 'customer' } })
+        if (!customerRole) {
+            throw new ConflictException("Customer role not support!")
+        }
+        const newUserData = {
             fullname,
             username,
             email,
-            password: hashedPassword
-        });
-        return this.usersRepository.save(newUser)
+            password: hashedPassword,
+            role: customerRole
+        }
+        return this.usersRepository.save(newUserData)
     }
     async refreshToken(@Req() req: Request): Promise<{ accessToken: string }> {
         const refreshToken = req.cookies['refreshToken'];

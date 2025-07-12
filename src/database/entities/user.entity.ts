@@ -1,3 +1,4 @@
+import { _default } from './../../../node_modules/@types/validator/index.d';
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn, OneToMany, OneToOne } from "typeorm";
 import { Role } from "./role.entity";
 import { Order } from "./order.entity";
