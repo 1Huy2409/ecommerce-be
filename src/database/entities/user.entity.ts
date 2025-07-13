@@ -3,6 +3,7 @@ import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateCol
 import { Role } from "./role.entity";
 import { Order } from "./order.entity";
 import { Cart } from "./cart.entity";
+import { Exclude } from 'class-transformer';
 @Entity("users")
 export class User {
     @PrimaryGeneratedColumn('uuid')
@@ -29,6 +30,7 @@ export class User {
     isActive: boolean
 
     @ManyToOne(() => Role, (role) => role.users, {
+        eager: true,
         nullable: false,
         onDelete: 'RESTRICT'
     })
@@ -45,6 +47,7 @@ export class User {
     phone_number: string
 
     @Column()
+    @Exclude({ toPlainOnly: true })
     password: string;
 
     @CreateDateColumn()
