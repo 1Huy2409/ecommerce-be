@@ -2,6 +2,7 @@ import { Body, ClassSerializerInterceptor, Controller, Delete, Get, Param, Parse
 import { UserService } from './user.service';
 import { UserResponseDto } from './dto/user-response.dto';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { instanceToPlain } from 'class-transformer';
 @Controller('users')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -27,13 +28,16 @@ export class UserController {
     }
 
     @Put(':id')
-    async update(@Body() updateData, @Param('id', ParseUUIDPipe) id: string) {
-        // const user = await this.userService.update(id)
-
+    async update(@Body() updateData: UpdateUserDto, @Param('id', ParseUUIDPipe) id: string): Promise<UserResponseDto> {
+        const updatedUser = await this.userService.update(updateData, id)
+        return instanceToPlain(updatedUser) as UserResponseDto
     }
 
     @Delete(':id')
-    async delete(@Param('id', ParseUUIDPipe) id: string) {
-
+    async delete(@Param('id', ParseUUIDPipe) id: string): Promise<{ message: string }> {
+        const { message } = await this.userService.delete(id)
+        return {
+            message: message
+        }
     }
 }

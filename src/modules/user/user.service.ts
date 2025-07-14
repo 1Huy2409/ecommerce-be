@@ -1,10 +1,11 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException, Body } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/database/entities/user.entity';
 import { Role } from 'src/database/entities/role.entity';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import * as bcrypt from 'bcrypt'
+import { UpdateUserDto } from './dto/update-user.dto';
 @Injectable()
 export class UserService {
     constructor(
@@ -49,7 +50,48 @@ export class UserService {
         const saveUser = await this.usersRepository.save(newUser);
         return saveUser;
     }
-    async update() {
-
+    async update(updateData: UpdateUserDto, id: string): Promise<User> {
+        const user = await this.usersRepository.findOne({ where: { id } })
+        if (!user) {
+            throw new NotFoundException("User not found!")
+        }
+        const checkDuplicate = await this.usersRepository.findOne({
+            where:
+                [
+                    {
+                        email: updateData.email,
+                        id: Not(user.id)
+                    },
+                    {
+                        username: updateData.username,
+                        id: Not(user.username)
+                    }
+                ]
+        })
+        if (checkDuplicate) {
+            if (checkDuplicate.email === updateData.email) {
+                throw new ConflictException("This email already exist")
+            }
+            if (checkDuplicate.username === updateData.username) {
+                throw new ConflictException("This username already exist")
+            }
+        }
+        const hashedPassword = await bcrypt.hash(updateData.password, 10)
+        const updatedUser = await this.usersRepository.save({
+            ...user,
+            ...updateData,
+            password: hashedPassword
+        });
+        return updatedUser;
+    }
+    async delete(id: string): Promise<{ message: string }> {
+        const user = await this.usersRepository.findOne({ where: { id } })
+        if (!user) {
+            throw new NotFoundException("User not found!")
+        }
+        await this.usersRepository.delete(user)
+        return {
+            message: "Delete successfully!"
+        }
     }
 }

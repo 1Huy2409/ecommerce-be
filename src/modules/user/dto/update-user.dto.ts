@@ -1,6 +1,6 @@
-import { IsEmail, IsNotEmpty, MinLength, IsString } from "class-validator";
+import { IsEmail, IsNotEmpty, MinLength, IsString, IsPhoneNumber } from "class-validator";
 
-export class CreateUserDto {
+export class UpdateUserDto {
     @IsNotEmpty({ message: "Fullname cant be empty!" })
     @MinLength(10, { message: "Fullname must be at least 10 characters" })
     fullname: string;
@@ -17,6 +17,6 @@ export class CreateUserDto {
     @MinLength(6, { message: "Password must be at least 6 characters!" })
     password: string;
 
-    @IsString({ message: "RoleID must be string" })
-    role_id: string;
+    @IsPhoneNumber()
+    phone_number: string;
 }
