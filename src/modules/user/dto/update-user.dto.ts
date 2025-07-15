@@ -17,6 +17,6 @@ export class UpdateUserDto {
     @MinLength(6, { message: "Password must be at least 6 characters!" })
     password: string;
 
-    @IsPhoneNumber()
+    @IsString()
     phone_number: string;
 }

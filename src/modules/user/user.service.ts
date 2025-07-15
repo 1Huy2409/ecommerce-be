@@ -51,6 +51,7 @@ export class UserService {
         return saveUser;
     }
     async update(updateData: UpdateUserDto, id: string): Promise<User> {
+        console.log("data:", updateData)
         const user = await this.usersRepository.findOne({ where: { id } })
         if (!user) {
             throw new NotFoundException("User not found!")
@@ -64,7 +65,11 @@ export class UserService {
                     },
                     {
                         username: updateData.username,
-                        id: Not(user.username)
+                        id: Not(user.id)
+                    },
+                    {
+                        phone_number: updateData.phone_number,
+                        id: Not(user.id)
                     }
                 ]
         })
@@ -76,12 +81,21 @@ export class UserService {
                 throw new ConflictException("This username already exist")
             }
         }
+        else {
+            console.log("Khong duplicate")
+        }
         const hashedPassword = await bcrypt.hash(updateData.password, 10)
         const updatedUser = await this.usersRepository.save({
             ...user,
             ...updateData,
             password: hashedPassword
         });
+        // user.fullname = updateData.fullname
+        // user.username = updateData.username
+        // user.email = updateData.email
+        // user.password = hashedPassword
+        // user.phone_number = updateData.phone_number
+        // return await this.usersRepository.save(user);
         return updatedUser;
     }
     async delete(id: string): Promise<{ message: string }> {
