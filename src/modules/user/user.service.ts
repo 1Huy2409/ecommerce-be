@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException, 
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/database/entities/user.entity';
 import { Role } from 'src/database/entities/role.entity';
-import { Not, Repository } from 'typeorm';
+import { DeleteResult, Not, Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import * as bcrypt from 'bcrypt'
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -90,20 +90,13 @@ export class UserService {
             ...updateData,
             password: hashedPassword
         });
-        // user.fullname = updateData.fullname
-        // user.username = updateData.username
-        // user.email = updateData.email
-        // user.password = hashedPassword
-        // user.phone_number = updateData.phone_number
-        // return await this.usersRepository.save(user);
         return updatedUser;
     }
     async delete(id: string): Promise<{ message: string }> {
-        const user = await this.usersRepository.findOne({ where: { id } })
-        if (!user) {
+        const result: DeleteResult = await this.usersRepository.delete(id)
+        if (result.affected === 0) {
             throw new NotFoundException("User not found!")
         }
-        await this.usersRepository.delete(user)
         return {
             message: "Delete successfully!"
         }
