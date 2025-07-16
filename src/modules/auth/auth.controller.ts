@@ -5,7 +5,7 @@ import { LoginDTO } from "./dto/login.dto"
 import { RegisterDTO } from "./dto/register.dto"
 import { User } from "src/database/entities/user.entity"
 import { Public } from "src/core/decorators/public.decorator"
-import { GoogleOAuthGuard } from "src/core/guards/google-oauth.guard"
+import { GoogleOAuthGuard } from "src/modules/auth/guards/google-oauth.guard"
 import { RequestWithUser } from "./types/auth.type"
 @Controller("auth")
 export class AuthController {

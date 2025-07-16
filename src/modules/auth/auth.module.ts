@@ -7,7 +7,7 @@ import { Role } from "src/database/entities/role.entity";
 import { JwtModule } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
 import { APP_GUARD } from "@nestjs/core";
-import { AuthGuard } from "../../core/guards/auth.guard";
+import { AuthGuard } from "./guards/auth.guard";
 import { GoogleStrategy } from "./strategies/google.strategy";
 @Module({
     imports: [
