@@ -1,17 +1,25 @@
-
 import {
   CanActivate,
   ExecutionContext,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { IS_PUBLIC_KEY } from 'src/core/decorators/public.decorator';
 import { Reflector } from '@nestjs/core';
+import { User } from 'src/database/entities/user.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private jwtService: JwtService, private reflector: Reflector) {}
+  constructor(
+    private jwtService: JwtService,
+    private reflector: Reflector,
+    @InjectRepository(User)
+    private usersRepository: Repository<User>
+  ) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
@@ -31,7 +39,12 @@ export class AuthGuard implements CanActivate {
       const payload = await this.jwtService.verifyAsync(token, {
         secret: process.env.JWT_SECRET,
       });
-      request['user'] = payload;
+      const { sub, username, email } = payload;
+      const user = await this.usersRepository.findOne({ where: { username } })
+      if (!user) {
+        throw new NotFoundException("User not found in database!")
+      }
+      request['user'] = user;
     } catch {
       throw new UnauthorizedException();
     }

@@ -1,11 +1,14 @@
-import { Body, ClassSerializerInterceptor, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put, UseInterceptors } from '@nestjs/common';
+import { Body, ClassSerializerInterceptor, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put, UseGuards, UseInterceptors } from '@nestjs/common';
 import { UserService } from './user.service';
 import { UserResponseDto } from './dto/user-response.dto';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { instanceToPlain } from 'class-transformer';
+import { RequirePermission } from 'src/core/decorators/permission.decorator';
+import { PermissionGuard } from '../auth/guards/permission.guard';
 @Controller('users')
 @UseInterceptors(ClassSerializerInterceptor)
+@UseGuards(PermissionGuard)
 export class UserController {
     constructor(private userService: UserService) { }
 
@@ -21,6 +24,7 @@ export class UserController {
         return instanceToPlain(user) as UserResponseDto
     }
 
+    @RequirePermission("user:create")
     @Post('')
     async create(@Body() dataUser: CreateUserDto): Promise<UserResponseDto> {
         const user = await this.userService.create(dataUser)
