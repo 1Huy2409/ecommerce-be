@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException, Body } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException, Body, Req } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/database/entities/user.entity';
 import { Role } from 'src/database/entities/role.entity';
@@ -6,6 +6,8 @@ import { DeleteResult, Not, Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import * as bcrypt from 'bcrypt'
 import { UpdateUserDto } from './dto/update-user.dto';
+import { Request } from 'express';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 @Injectable()
 export class UserService {
     constructor(
@@ -24,6 +26,10 @@ export class UserService {
             throw new NotFoundException("User not found!")
         }
         return user;
+    }
+    async getProfile(@Req() req: Request) {
+        const user = req.user
+        return user
     }
     async create(userData: CreateUserDto): Promise<User> {
         const existingUser = await this.usersRepository.findOne({ where: [{ email: userData.email }, { username: userData.username }] })
@@ -51,7 +57,6 @@ export class UserService {
         return saveUser;
     }
     async update(updateData: UpdateUserDto, id: string): Promise<User> {
-        console.log("data:", updateData)
         const user = await this.usersRepository.findOne({ where: { id } })
         if (!user) {
             throw new NotFoundException("User not found!")
@@ -81,9 +86,6 @@ export class UserService {
                 throw new ConflictException("This username already exist")
             }
         }
-        else {
-            console.log("Khong duplicate")
-        }
         const hashedPassword = await bcrypt.hash(updateData.password, 10)
         const updatedUser = await this.usersRepository.save({
             ...user,
@@ -91,6 +93,57 @@ export class UserService {
             password: hashedPassword
         });
         return updatedUser;
+    }
+    async updateProfile(profileData: UpdateProfileDto, @Req() req: Request) {
+        const user: User = req.user as User
+        const checkDuplicate = await this.usersRepository.findOne({
+            where:
+                [
+                    {
+                        email: profileData.email,
+                        id: Not(user.id)
+                    },
+                    {
+                        username: profileData.username,
+                        id: Not(user.id)
+                    },
+                    {
+                        phone_number: profileData.phone_number,
+                        id: Not(user.id)
+                    }
+                ]
+        })
+        if (checkDuplicate) {
+            if (checkDuplicate.email === profileData.email) {
+                throw new ConflictException("This email already exist")
+            }
+            if (checkDuplicate.username === profileData.username) {
+                throw new ConflictException("This username already exist")
+            }
+        }
+        const hashedPassword = await bcrypt.hash(profileData.password, 10)
+        const updatedProfile = await this.usersRepository.save({
+            ...user,
+            ...profileData,
+            password: hashedPassword
+        })
+        return updatedProfile
+    }
+    async lock(id: string): Promise<User> {
+        const lockUser = await this.usersRepository.findOne({ where: { id } })
+        if (!lockUser) {
+            throw new NotFoundException("User not found!")
+        }
+        lockUser.isActive = false
+        return await this.usersRepository.save(lockUser)
+    }
+    async unlock(id: string): Promise<User> {
+        const lockUser = await this.usersRepository.findOne({ where: { id } })
+        if (!lockUser) {
+            throw new NotFoundException("User not found!")
+        }
+        lockUser.isActive = true
+        return await this.usersRepository.save(lockUser)
     }
     async delete(id: string): Promise<{ message: string }> {
         const result: DeleteResult = await this.usersRepository.delete(id)

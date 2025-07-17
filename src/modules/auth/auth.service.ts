@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Req } from "@nestjs/common"
 import { Request } from "express"
@@ -28,6 +28,9 @@ export class AuthService {
         const isMatch: boolean = await bcrypt.compare(password, user.password)
         if (!isMatch) {
             throw new BadRequestException("Password Incorrect!")
+        }
+        if (!user.isActive) {
+            throw new ForbiddenException("Your account is locked!")
         }
         const payload = { sub: user.id, username: user.username, email: user.email }
         const accessToken = await this.jwtService.signAsync(payload)

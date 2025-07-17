@@ -1,6 +1,6 @@
-import { IsEmail, IsNotEmpty, MinLength, IsString, IsPhoneNumber, IsBoolean } from "class-validator";
+import { IsEmail, IsNotEmpty, MinLength, IsString, IsPhoneNumber } from "class-validator";
 
-export class UpdateUserDto {
+export class UpdateProfileDto {
     @IsNotEmpty({ message: "Fullname cant be empty!" })
     @MinLength(10, { message: "Fullname must be at least 10 characters" })
     fullname: string;
@@ -20,6 +20,4 @@ export class UpdateUserDto {
     @IsString()
     phone_number: string;
 
-    @IsBoolean()
-    isActive: boolean
 }
