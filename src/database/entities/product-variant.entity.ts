@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, JoinColum
 import { OrderItem } from "./order-item.entity";
 import { CartItem } from "./cart-item.entity";
 import { Product } from "./product.entity";
+import { Image } from "./image.entity";
 @Entity("product_variants")
 export class ProductVariant {
     @PrimaryGeneratedColumn('uuid')
@@ -19,9 +20,6 @@ export class ProductVariant {
     @Column({ type: 'int', default: 0 })
     stockQuantity: number;
 
-    @Column({ type: 'text', nullable: true })
-    imageUrl: string;
-
     @ManyToOne(() => Product, (product) => product.variants, {
         nullable: false,
         onDelete: 'CASCADE',
@@ -34,4 +32,10 @@ export class ProductVariant {
 
     @OneToMany(() => OrderItem, (orderItem) => orderItem.productVariant)
     orderItems: OrderItem[];
+
+    @OneToMany(() => Image, (image) => image.product_variant, {
+        cascade: ['insert', 'update', 'remove'],
+        eager: true
+    })
+    images: Image[]
 }

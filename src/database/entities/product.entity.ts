@@ -35,9 +35,14 @@ export class Product {
     @JoinColumn({ name: 'category_id' })
     category: Category
 
-    @OneToMany(() => ProductVariant, (variant) => variant.product)
+    @OneToMany(() => ProductVariant, (variant) => variant.product, {
+        eager: true
+    })
     variants: ProductVariant[]
 
-    @OneToMany(() => Image, (image) => image.product)
+    @OneToMany(() => Image, (image) => image.product, {
+        eager: true,
+        cascade: ['insert', 'update', 'remove']
+    })
     images: Image[]
 }
