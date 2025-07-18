@@ -7,13 +7,17 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { PermissionGuard } from '../auth/guards/permission.guard';
 import { Brand } from 'src/database/entities/brand.entity';
 import { Category } from 'src/database/entities/category.entity';
+import { ProductVariantService } from './product-variant.service';
+import { ImageModule } from '../image/image.module';
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Product, ProductVariant, Brand, Category])
+    TypeOrmModule.forFeature([Product, ProductVariant, Brand, Category]),
+    ImageModule
   ],
   controllers: [ProductController],
   providers: [
     ProductService,
+    ProductVariantService,
     PermissionGuard
   ]
 })

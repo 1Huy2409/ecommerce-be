@@ -30,6 +30,7 @@ export class ImageService {
         image.isThumbnail = isThumbnail ? isThumbnail : false
         image.order = order ? order : 0
         image.product = product
+        await this.imagesRepository.save(image)
     }
     async attachImageToVariant(imageId: string, variant: ProductVariant, isThumbnail: boolean, order: number) {
         const image = await this.imagesRepository.findOne({ where: { id: imageId } })
@@ -39,5 +40,6 @@ export class ImageService {
         image.isThumbnail = isThumbnail ? isThumbnail : false
         image.order = order ? order : 0
         image.product_variant = variant
+        await this.imagesRepository.save(image)
     }
 }

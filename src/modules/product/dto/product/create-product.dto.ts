@@ -12,7 +12,7 @@ export class CreateProductDto {
     description?: string;
 
     @IsNotEmpty()
-    @IsDecimal({ decimal_digits: '2' })
+    // @IsDecimal({ decimal_digits: '2' })
     basePrice: number;
 
     @IsOptional()

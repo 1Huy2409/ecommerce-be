@@ -6,7 +6,6 @@ import { AuthModule } from './modules/auth/auth.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CloudinaryModule } from './modules/storage/cloudinary/cloudinary.module';
 import { ImageModule } from './modules/image/image.module';
-import { ImageModule } from './modules/image/image.module';
 @Module({
   imports: [ConfigModule.forRoot({
     isGlobal: true,

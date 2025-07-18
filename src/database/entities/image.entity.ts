@@ -22,7 +22,7 @@ export class Image {
     order: number
 
     @ManyToOne(() => Product, (product) => product.images, {
-        nullable: false,
+        nullable: true,
         onDelete: 'CASCADE'
     })
     @JoinColumn({ name: 'product_id' })

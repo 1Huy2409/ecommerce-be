@@ -20,7 +20,7 @@ export class ProductService {
         private imageService: ImageService,
         private variantService: ProductVariantService
     ) { }
-    async createProductWithVariant(productData: CreateProductDto): Promise<Product> {
+    async createProductWithVariant(productData: CreateProductDto): Promise<Product | null> {
         const { name, description, basePrice, gender, brandId, categoryId, productImageIds, variants } = productData
         const existingBrand = await this.brandsRepository.findOne({ where: { id: brandId } })
         if (!existingBrand) {
@@ -34,7 +34,6 @@ export class ProductService {
         if (existingProduct) {
             throw new ConflictException("This product have already exist!")
         }
-        // create product entity
         const newProduct = this.productsRepository.create({
             name,
             description,
@@ -44,8 +43,6 @@ export class ProductService {
             category: existingCategory,
         })
         const savedProduct = await this.productsRepository.save(newProduct)
-
-        // attach image to product by productImageIds
         if (productImageIds && productImageIds.length > 0) {
             for (let i = 0; i < productImageIds.length; i++) {
                 const imageId = productImageIds[i]
@@ -68,7 +65,8 @@ export class ProductService {
             }
         }
         savedProduct.variants = productVariants
-        return await this.productsRepository.save(savedProduct)
+        await this.productsRepository.save(savedProduct)
+        return this.productsRepository.findOne({ where: { id: savedProduct.id } })
     }
 }
 
