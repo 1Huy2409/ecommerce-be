@@ -1,25 +1,30 @@
 import { IsArray, IsDecimal, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, ValidateNested } from "class-validator";
-import { ImageUploadRequestDto } from "../image/image-upload-request.dto";
-import { Type } from "class-transformer";
 
-export class CreateProductVariantDto {
-    @IsNotEmpty()
-    @IsNumber()
-    size: number
+export class UpdateProductVariantDto {
+    @IsUUID()
+    @IsOptional()
+    id?: string
 
     @IsOptional()
     @IsNotEmpty()
-    sku: string
+    @IsNumber()
+    size?: number
 
+    @IsOptional()
+    @IsNotEmpty()
+    sku?: string
+
+    @IsOptional()
     @IsNotEmpty()
     @IsNumber({ maxDecimalPlaces: 2 })
-    additionalPrice: number
+    additionalPrice?: number
 
+    @IsOptional()
     @IsInt()
-    stockQuantity: number
+    stockQuantity?: number
 
     @IsOptional()
     @IsArray()
     @IsUUID(undefined, { each: true })
-    productVariantImageIds: string[]
+    productVariantImageIds?: string[]
 }
