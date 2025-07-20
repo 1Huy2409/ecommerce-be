@@ -4,11 +4,12 @@ import { Product } from 'src/database/entities/product.entity';
 import { Category } from 'src/database/entities/category.entity';
 import { Brand } from 'src/database/entities/brand.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Not, Repository } from 'typeorm';
+import { ILike, Like, Not, Repository } from 'typeorm';
 import { ImageService } from '../image/image.service';
 import { ProductVariantService } from './product-variant.service';
 import { ProductVariant } from 'src/database/entities/product-variant.entity';
 import { UpdateProductDto } from './dto/product/update-product.dto';
+import { ProductResponseDto } from './dto/product/product-response.dto';
 @Injectable()
 export class ProductService {
     constructor(
@@ -86,10 +87,10 @@ export class ProductService {
         if (existingProduct) {
             throw new ConflictException("This product have already exist!")
         }
+        updateProduct.brand = existingBrand
+        updateProduct.category = existingCategory
         const saveProduct = await this.productsRepository.save({
             ...updateProduct,
-            brandId,
-            categoryId,
             ...restData,
         })
 
@@ -148,6 +149,47 @@ export class ProductService {
             }
         }
         return await this.productsRepository.findOne({ where: { id: saveProduct.id } })
+    }
+    async findAllProduct(): Promise<Product[]> {
+        const products = await this.productsRepository.find()
+        return products
+    }
+    async findProductById(id: string): Promise<Product> {
+        const product = await this.productsRepository.findOne({ where: { id } })
+        if (!product) {
+            throw new NotFoundException(`Product with ID ${id} is not found!`)
+        }
+        return product
+    }
+    async findProductsByCategory(id: string): Promise<Product[]> {
+        let products: Product[] = []
+        const existingCategory = await this.categoriesRepository.findOne({ where: { id } })
+        if (existingCategory) {
+            products = await this.productsRepository.find({ where: { category: existingCategory } })
+        }
+        else {
+            throw new NotFoundException(`Category with ID ${id} is not found!`)
+        }
+        return products
+    }
+    async findProductsByBrand(id: string): Promise<Product[]> {
+        let products: Product[] = []
+        const existingBrand = await this.brandsRepository.findOne({ where: { id } })
+        if (existingBrand) {
+            products = await this.productsRepository.find({ where: { brand: existingBrand } })
+        }
+        else {
+            throw new NotFoundException(`Brand with ID ${id} is not found!`)
+        }
+        return products
+    }
+    async searchProduct(searchName: string): Promise<Product[]> {
+        const products = await this.productsRepository.find({
+            where: {
+                name: ILike(`%${searchName}%`)
+            }
+        })
+        return products
     }
 }
 

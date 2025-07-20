@@ -27,11 +27,17 @@ export class Product {
     @UpdateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
     updated_at: Date
 
-    @ManyToOne(() => Brand, (brand) => brand.products, { nullable: false })
+    @ManyToOne(() => Brand, (brand) => brand.products, {
+        nullable: false,
+        eager: true
+    })
     @JoinColumn({ name: 'brand_id' })
     brand: Brand
 
-    @ManyToOne(() => Category, (category) => category.products, { nullable: false })
+    @ManyToOne(() => Category, (category) => category.products, {
+        nullable: false,
+        eager: true
+    })
     @JoinColumn({ name: 'category_id' })
     category: Category
 

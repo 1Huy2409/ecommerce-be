@@ -1,4 +1,4 @@
-import { Expose } from "class-transformer"
+import { Exclude, Expose } from "class-transformer"
 import { ProductVariant } from "src/database/entities/product-variant.entity"
 import { Image } from "src/database/entities/image.entity"
 import { Product } from "src/database/entities/product.entity"

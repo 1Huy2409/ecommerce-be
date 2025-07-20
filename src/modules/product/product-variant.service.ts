@@ -89,6 +89,6 @@ export class ProductVariantService {
         if (!variant) {
             throw new NotFoundException(`Variant with ID ${variantId} is not found!`)
         }
-        await this.variantsRepository.delete(variant)
+        await this.variantsRepository.remove(variant)
     }
 }
