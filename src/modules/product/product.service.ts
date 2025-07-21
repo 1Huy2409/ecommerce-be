@@ -69,7 +69,7 @@ export class ProductService {
         await this.productsRepository.save(savedProduct)
         return this.productsRepository.findOne({ where: { id: savedProduct.id } })
     }
-    async updateProduct(productData: UpdateProductDto, id: string) {
+    async updateProduct(productData: UpdateProductDto, id: string): Promise<Product | null> {
         const { name, brandId, categoryId, productImageIds, variants, ...restData } = productData
         const updateProduct = await this.productsRepository.findOne({ where: { id } })
         if (!updateProduct) {
