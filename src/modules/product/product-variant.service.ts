@@ -11,8 +11,19 @@ export class ProductVariantService {
     constructor(
         @InjectRepository(ProductVariant)
         private variantsRepository: Repository<ProductVariant>,
+        @InjectRepository(Product)
+        private productsRepository: Repository<Product>,
         private imageService: ImageService
     ) { }
+
+    async getVariantByProduct(productId: string): Promise<ProductVariant[]> {
+        const product = await this.productsRepository.findOne({ where: { id: productId } })
+        if (!product) {
+            throw new NotFoundException(`Product with ID ${productId} is not found!`)
+        }
+        return product.variants
+    }
+
     async createVariant(variantData: CreateProductVariantDto | UpdateProductVariantDto, parentProduct: Product): Promise<ProductVariant> {
         const { size, sku, additionalPrice, stockQuantity, productVariantImageIds } = variantData
         const existingSku = await this.variantsRepository.findOne({ where: { sku } })
@@ -43,6 +54,7 @@ export class ProductVariantService {
     async updateVariant(variantId: string, updateVariantDto: UpdateProductVariantDto): Promise<ProductVariant> {
         const { sku, productVariantImageIds, ...restData } = updateVariantDto
         const updateVariant = await this.variantsRepository.findOne({ where: { id: variantId } })
+        console.log("Variant tim duoc: ", updateVariant)
         const existingSku = await this.variantsRepository.findOne({ where: { sku, id: Not(variantId) } })
         if (existingSku) {
             throw new ConflictException("This sku for your variant have already exist!")
@@ -50,9 +62,14 @@ export class ProductVariantService {
         if (!updateVariant) {
             throw new NotFoundException(`Variant with ID ${variantId} is not found!`)
         }
-        const savedVariant = await this.variantsRepository.save({
-            ...updateVariant,
+        console.log("DATA UPDATEE: ", {
             ...restData,
+            ...updateVariant,
+            sku
+        })
+        const savedVariant = await this.variantsRepository.save({
+            ...restData,
+            ...updateVariant,
             sku
         })
         if (productVariantImageIds) {

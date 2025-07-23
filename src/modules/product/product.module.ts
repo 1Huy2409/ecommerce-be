@@ -9,12 +9,13 @@ import { Brand } from 'src/database/entities/brand.entity';
 import { Category } from 'src/database/entities/category.entity';
 import { ProductVariantService } from './product-variant.service';
 import { ImageModule } from '../image/image.module';
+import { VariantController } from './product-variant.controller';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Product, ProductVariant, Brand, Category]),
     ImageModule
   ],
-  controllers: [ProductController],
+  controllers: [ProductController, VariantController],
   providers: [
     ProductService,
     ProductVariantService,
