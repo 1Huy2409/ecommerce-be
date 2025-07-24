@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsDecimal, IsInt, IsArray, ValidateNested, IsUUID } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsDecimal, IsInt, IsArray, ValidateNested, IsUUID, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CreateProductVariantDto } from '../variant/create-product-variant.dto';
 import { ImageUploadRequestDto } from '../image/image-upload-request.dto';
@@ -19,6 +19,10 @@ export class UpdateProductDto {
     @IsOptional()
     @IsString()
     gender?: string;
+
+    @IsOptional()
+    @IsBoolean()
+    isLocked: boolean
 
     @IsOptional()
     @IsNotEmpty()

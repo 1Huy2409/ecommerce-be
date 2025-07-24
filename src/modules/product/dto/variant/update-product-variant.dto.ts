@@ -1,4 +1,4 @@
-import { IsArray, IsDecimal, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, ValidateNested } from "class-validator";
+import { IsArray, IsBoolean, IsDecimal, IsInt, IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, ValidateNested } from "class-validator";
 
 export class UpdateProductVariantDto {
     @IsUUID()
@@ -22,6 +22,10 @@ export class UpdateProductVariantDto {
     @IsOptional()
     @IsInt()
     stockQuantity?: number
+
+    @IsOptional()
+    @IsBoolean()
+    isLocked: boolean
 
     @IsOptional()
     @IsArray()

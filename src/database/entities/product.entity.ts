@@ -21,6 +21,9 @@ export class Product {
     @Column({ length: 20, nullable: true })
     gender: string
 
+    @Column({ default: false })
+    isLocked: boolean
+
     @CreateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
     created_at: Date
 

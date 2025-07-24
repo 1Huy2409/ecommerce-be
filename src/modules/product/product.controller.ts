@@ -1,4 +1,4 @@
-import { Body, ClassSerializerInterceptor, Controller, Get, Param, ParseUUIDPipe, Post, Put, Query, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, ClassSerializerInterceptor, Controller, Get, Param, ParseUUIDPipe, Post, Put, Query, Req, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/product/create-product.dto';
 import { ProductResponseDto } from './dto/product/product-response.dto';
@@ -6,6 +6,7 @@ import { UpdateProductDto } from './dto/product/update-product.dto';
 import { instanceToPlain } from 'class-transformer';
 import { PermissionGuard } from '../auth/guards/permission.guard';
 import { RequirePermission } from 'src/core/decorators/permission.decorator';
+import { Request } from 'express';
 @Controller('products')
 @UseInterceptors(ClassSerializerInterceptor)
 @UseGuards(PermissionGuard)
@@ -14,10 +15,9 @@ export class ProductController {
         private productService: ProductService
     ) { }
 
-    @RequirePermission('product:read')
     @Get('')
-    async findAllProduct(): Promise<ProductResponseDto[]> {
-        const products = await this.productService.findAllProduct()
+    async findAllProduct(@Req() req: Request): Promise<ProductResponseDto[]> {
+        const products = await this.productService.findAllProduct(req)
         return instanceToPlain(products) as ProductResponseDto[]
     }
 

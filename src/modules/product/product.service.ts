@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException, Req } from '@nestjs/common';
 import { CreateProductDto } from './dto/product/create-product.dto';
 import { Product } from 'src/database/entities/product.entity';
 import { Category } from 'src/database/entities/category.entity';
@@ -9,7 +9,8 @@ import { ImageService } from '../image/image.service';
 import { ProductVariantService } from './product-variant.service';
 import { ProductVariant } from 'src/database/entities/product-variant.entity';
 import { UpdateProductDto } from './dto/product/update-product.dto';
-import { ProductResponseDto } from './dto/product/product-response.dto';
+import { Request } from 'express';
+import { User } from 'src/database/entities/user.entity';
 @Injectable()
 export class ProductService {
     constructor(
@@ -150,8 +151,13 @@ export class ProductService {
         }
         return await this.productsRepository.findOne({ where: { id: saveProduct.id } })
     }
-    async findAllProduct(): Promise<Product[]> {
-        const products = await this.productsRepository.find()
+    async findAllProduct(@Req() req: Request): Promise<Product[]> {
+        const user: User = req.user as User
+        const whereCondition: any = {}
+        if (user.role.name === 'customer') {
+            whereCondition.isLocked = false
+        }
+        const products = await this.productsRepository.find({ where: whereCondition })
         return products
     }
     async findProductById(id: string): Promise<Product> {

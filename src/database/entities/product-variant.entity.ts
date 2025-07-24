@@ -20,6 +20,9 @@ export class ProductVariant {
     @Column({ type: 'int', default: 0 })
     stockQuantity: number;
 
+    @Column({ default: false })
+    isLocked: boolean
+
     @ManyToOne(() => Product, (product) => product.variants, {
         nullable: false,
         onDelete: 'CASCADE',
