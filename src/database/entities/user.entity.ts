@@ -47,7 +47,6 @@ export class User {
     phone_number: string
 
     @Column()
-    @Exclude({ toPlainOnly: true })
     password: string;
 
     @CreateDateColumn()
