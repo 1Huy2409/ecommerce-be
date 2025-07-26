@@ -7,6 +7,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CloudinaryModule } from './modules/storage/cloudinary/cloudinary.module';
 import { ImageModule } from './modules/image/image.module';
 import { PermissionModule } from './modules/permission/permission.module';
+import { RoleModule } from './modules/role/role.module';
 @Module({
   imports: [ConfigModule.forRoot({
     isGlobal: true,
@@ -24,7 +25,7 @@ import { PermissionModule } from './modules/permission/permission.module';
     autoLoadEntities: true,
     synchronize: false
   }),
-    AuthModule, ProductModule, UserModule, CloudinaryModule, ImageModule, PermissionModule],
+    AuthModule, ProductModule, UserModule, CloudinaryModule, ImageModule, PermissionModule, RoleModule],
   controllers: [],
   providers: [],
 })

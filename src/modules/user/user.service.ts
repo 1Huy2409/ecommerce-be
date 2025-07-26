@@ -42,9 +42,15 @@ export class UserService {
             }
         }
         const hashedPassword = await bcrypt.hash(userData.password, 10)
-        const roleOption = await this.rolesRepository.findOne({ where: { id: userData.role_id } })
+        let roleOption: any = await this.rolesRepository.findOne({ where: { name: "customer" } })
         if (!roleOption) {
-            throw new BadRequestException("RoleID not found!")
+            throw new NotFoundException("Default customer is not found!")
+        }
+        if (userData.role_id) {
+            roleOption = await this.rolesRepository.findOne({ where: { id: userData.role_id } })
+            if (!roleOption) {
+                throw new BadRequestException("RoleID not found!")
+            }
         }
         const newUser = this.usersRepository.create({
             fullname: userData.fullname,
