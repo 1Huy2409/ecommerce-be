@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsDecimal, IsInt, IsArray, ValidateNested, IsUUID } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsDecimal, IsInt, IsArray, ValidateNested, IsUUID, IsNumber } from 'class-validator';
 import { Type } from 'class-transformer';
 import { CreateProductVariantDto } from '../variant/create-product-variant.dto';
 import { ImageUploadRequestDto } from '../image/image-upload-request.dto';
@@ -12,7 +12,7 @@ export class CreateProductDto {
     description?: string;
 
     @IsNotEmpty()
-    // @IsDecimal({ decimal_digits: '2' })
+    @IsNumber()
     basePrice: number;
 
     @IsOptional()
@@ -30,7 +30,7 @@ export class CreateProductDto {
     @IsOptional()
     @IsArray()
     @IsUUID(undefined, { each: true })
-    productImageIds: string[]
+    productImageIds?: string[]
 
     @IsOptional()
     @IsArray()

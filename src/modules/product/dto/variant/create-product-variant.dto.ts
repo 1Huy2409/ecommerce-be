@@ -7,7 +7,6 @@ export class CreateProductVariantDto {
     @IsNumber()
     size: number
 
-    @IsOptional()
     @IsNotEmpty()
     sku: string
 
@@ -21,5 +20,5 @@ export class CreateProductVariantDto {
     @IsOptional()
     @IsArray()
     @IsUUID(undefined, { each: true })
-    productVariantImageIds: string[]
+    productVariantImageIds?: string[]
 }

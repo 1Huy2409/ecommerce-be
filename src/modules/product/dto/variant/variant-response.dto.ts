@@ -1,19 +1,23 @@
+import { Expose, Type } from "class-transformer"
 import { CartItem } from "src/database/entities/cart-item.entity"
-import { Image } from "src/database/entities/image.entity"
 import { OrderItem } from "src/database/entities/order-item.entity"
-import { ProductVariant } from "src/database/entities/product-variant.entity"
-import { Product } from "src/database/entities/product.entity"
+import { ImageResponseDto } from "src/modules/image/dto/image-response.dto"
 export class VariantResponseDto {
+    @Expose()
     id: string
+    @Expose()
     size: number
+    @Expose()
     sku: string
+    @Expose()
     additionalPrice: number
+    @Expose()
     stockQuantity: number
+    @Expose()
     cartItems: CartItem[]
+    @Expose()
     orderItems: OrderItem[]
-    images: Image[]
-
-    constructor(partial: Partial<ProductVariant>) {
-        Object.assign(this, partial)
-    }
+    @Expose()
+    @Type(() => ImageResponseDto)
+    images: ImageResponseDto[]
 }

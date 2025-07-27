@@ -1,28 +1,39 @@
-import { Exclude, Expose } from "class-transformer"
-import { ProductVariant } from "src/database/entities/product-variant.entity"
-import { Image } from "src/database/entities/image.entity"
-import { Product } from "src/database/entities/product.entity"
+import { Expose, Type } from "class-transformer"
+import { VariantResponseDto } from "../variant/variant-response.dto"
+import { ImageResponseDto } from "src/modules/image/dto/image-response.dto"
 export class ProductResponseDto {
+    @Expose()
     id: string
+    @Expose()
     name: string
+    @Expose()
     description: string | null
+    @Expose()
     basePrice: number
+    @Expose()
     gender: string | null
+    @Expose()
+    isLocked: boolean
+    @Expose()
     created_at: Date
+    @Expose()
     updated_at: Date
 
     @Expose()
-    getBrandName(): string | undefined {
+    get brandName(): string | undefined {
         return (this as any).brand ? (this as any).brand.name : undefined
     }
     @Expose()
-    getCategoryName(): string | undefined {
+    get categoryName(): string | undefined {
         return (this as any).category ? (this as any).category.name : undefined
     }
-    variants: ProductVariant[] | undefined
-    images: Image[] | undefined
 
-    constructor(partial: Partial<Product>) {
-        Object.assign(this, partial)
-    }
+    @Expose()
+    @Type(() => VariantResponseDto)
+    variants: VariantResponseDto[]
+
+    @Expose()
+    @Type(() => ImageResponseDto)
+    images: ImageResponseDto[]
+
 }

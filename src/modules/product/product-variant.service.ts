@@ -1,7 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { ProductVariant } from "src/database/entities/product-variant.entity";
-import { Not, Repository } from "typeorm";
+import { EntityManager, Not, Repository, DataSource } from "typeorm";
 import { CreateProductVariantDto } from "./dto/variant/create-product-variant.dto";
 import { Product } from "src/database/entities/product.entity";
 import { ImageService } from "../image/image.service";
@@ -13,7 +13,8 @@ export class ProductVariantService {
         private variantsRepository: Repository<ProductVariant>,
         @InjectRepository(Product)
         private productsRepository: Repository<Product>,
-        private imageService: ImageService
+        private imageService: ImageService,
+        private dataSource: DataSource
     ) { }
 
     async getVariantByProduct(productId: string): Promise<ProductVariant[]> {
@@ -24,37 +25,47 @@ export class ProductVariantService {
         return product.variants
     }
 
-    async createVariant(variantData: CreateProductVariantDto | UpdateProductVariantDto, parentProduct: Product): Promise<ProductVariant> {
+    async createVariantTransaction(manager: EntityManager, variantData: CreateProductVariantDto | UpdateProductVariantDto, parentProduct: Product): Promise<ProductVariant | null> {
         const { size, sku, additionalPrice, stockQuantity, productVariantImageIds } = variantData
-        const existingSku = await this.variantsRepository.findOne({ where: { sku } })
+        const existingSku = await manager.findOne(ProductVariant, { where: { sku } })
         if (existingSku) {
             throw new ConflictException("This sku for your variant have already exist!")
         }
-        const newVariant = this.variantsRepository.create({
-            size,
-            sku,
-            additionalPrice,
-            stockQuantity,
-            product: parentProduct
-        })
-        const savedVariant = await this.variantsRepository.save(newVariant)
-        if (productVariantImageIds && productVariantImageIds.length > 0) {
-            for (let i = 0; i < productVariantImageIds.length; i++) {
-                let variantImageId = productVariantImageIds[i]
-                await this.imageService.attachImageToVariant(
-                    variantImageId,
-                    savedVariant,
-                    i === 0,
-                    i
-                )
+        try {
+            const newVariant = manager.create(ProductVariant, {
+                size,
+                sku,
+                additionalPrice,
+                stockQuantity,
+                product: parentProduct
+            })
+            const saveVariant = await manager.save(ProductVariant, newVariant)
+            if (productVariantImageIds && productVariantImageIds.length > 0) {
+                for (let i = 0; i < productVariantImageIds.length; i++) {
+                    let variantImageId = productVariantImageIds[i]
+                    await this.imageService.attachImageToVariantTransaction(
+                        manager,
+                        variantImageId,
+                        saveVariant,
+                        i === 0,
+                        i
+                    )
+                }
             }
+            const finalVariant = await manager.findOne(ProductVariant, { where: { id: saveVariant.id }, relations: { images: true } })
+            return finalVariant
         }
-        return savedVariant
+        catch (error) {
+            console.log("Variant Error: ", error)
+            throw error
+        }
     }
-    async updateVariant(variantId: string, updateVariantDto: UpdateProductVariantDto): Promise<ProductVariant> {
+
+    async updateVariant(variantId: string, updateVariantDto: UpdateProductVariantDto): Promise<ProductVariant | null | undefined> {
         const { sku, productVariantImageIds, ...restData } = updateVariantDto
         const updateVariant = await this.variantsRepository.findOne({ where: { id: variantId } })
         console.log("Variant tim duoc: ", updateVariant)
+        console.log("Rest data: ", restData)
         const existingSku = await this.variantsRepository.findOne({ where: { sku, id: Not(variantId) } })
         if (existingSku) {
             throw new ConflictException("This sku for your variant have already exist!")
@@ -62,14 +73,67 @@ export class ProductVariantService {
         if (!updateVariant) {
             throw new NotFoundException(`Variant with ID ${variantId} is not found!`)
         }
-        console.log("DATA UPDATEE: ", {
-            ...restData,
-            ...updateVariant,
-            sku
+        return await this.dataSource.transaction(async (manager: EntityManager) => {
+            try {
+                const savedVariant = await manager.save(ProductVariant, {
+                    ...updateVariant,
+                    ...restData,
+                    id: updateVariant.id,
+                    sku
+                })
+                if (productVariantImageIds) {
+                    const newProductVariantImageIds = productVariantImageIds
+                    const oldProductVariantImageIds = updateVariant.images.map((item) => item.id)
+                    const attachImageIds = newProductVariantImageIds.filter(item => !oldProductVariantImageIds.includes(item))
+                    const removeImageIds = oldProductVariantImageIds.filter(item => !newProductVariantImageIds.includes(item))
+                    if (attachImageIds && attachImageIds.length > 0) {
+                        for (let i = 0; i < newProductVariantImageIds.length; i++) {
+                            const imageId = newProductVariantImageIds[i]
+                            if (attachImageIds.includes(imageId)) {
+                                await this.imageService.attachImageToVariantTransaction(
+                                    manager,
+                                    imageId,
+                                    savedVariant,
+                                    i === 0,
+                                    i
+                                )
+                            }
+                        }
+                    }
+                    if (removeImageIds && removeImageIds.length > 0) {
+                        for (let i = 0; i < removeImageIds.length; i++) {
+                            const imageId = removeImageIds[i]
+                            await this.imageService.removeImageFromProduct(imageId)
+                        }
+                    }
+                }
+                return await manager.findOne(ProductVariant, {
+                    where: { id: savedVariant.id },
+                    relations: {
+                        images: true
+                    }
+                })
+            }
+            catch (error) {
+                console.log("Update variant error: ", error)
+                throw error
+            }
         })
-        const savedVariant = await this.variantsRepository.save({
-            ...restData,
+    }
+    async updateVariantTransaction(manager: EntityManager, variantId: string, updateVariantDto: UpdateProductVariantDto): Promise<ProductVariant> {
+        const { id, sku, productVariantImageIds, ...restData } = updateVariantDto
+        const updateVariant = await manager.findOne(ProductVariant, { where: { id: variantId }, relations: ['images'] })
+        const existingSku = await manager.findOne(ProductVariant, { where: { sku, id: Not(variantId) } })
+        if (existingSku) {
+            throw new ConflictException("This sku for your variant have already exist!")
+        }
+        if (!updateVariant) {
+            throw new NotFoundException(`Variant with ID ${variantId} is not found!`)
+        }
+        const savedVariant = await manager.save(ProductVariant, {
             ...updateVariant,
+            ...restData,
+            id,
             sku
         })
         if (productVariantImageIds) {
@@ -81,7 +145,8 @@ export class ProductVariantService {
                 for (let i = 0; i < newProductVariantImageIds.length; i++) {
                     const imageId = newProductVariantImageIds[i]
                     if (attachImageIds.includes(imageId)) {
-                        await this.imageService.attachImageToVariant(
+                        await this.imageService.attachImageToVariantTransaction(
+                            manager,
                             imageId,
                             savedVariant,
                             i === 0,

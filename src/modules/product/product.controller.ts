@@ -1,14 +1,17 @@
-import { Body, ClassSerializerInterceptor, Controller, Get, Param, ParseUUIDPipe, Post, Put, Query, Req, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, ClassSerializerInterceptor, Controller, Get, Param, ParseUUIDPipe, Post, Put, Query, Req, SerializeOptions, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/product/create-product.dto';
 import { ProductResponseDto } from './dto/product/product-response.dto';
 import { UpdateProductDto } from './dto/product/update-product.dto';
-import { instanceToPlain } from 'class-transformer';
+import { instanceToPlain, plainToInstance } from 'class-transformer';
 import { PermissionGuard } from '../auth/guards/permission.guard';
 import { RequirePermission } from 'src/core/decorators/permission.decorator';
-import { Request } from 'express';
+import e, { Request } from 'express';
 @Controller('products')
 @UseInterceptors(ClassSerializerInterceptor)
+@SerializeOptions({
+    excludeExtraneousValues: true
+})
 @UseGuards(PermissionGuard)
 export class ProductController {
     constructor(
@@ -18,32 +21,32 @@ export class ProductController {
     @Get('')
     async findAllProduct(@Req() req: Request): Promise<ProductResponseDto[]> {
         const products = await this.productService.findAllProduct(req)
-        return instanceToPlain(products) as ProductResponseDto[]
+        return plainToInstance(ProductResponseDto, products)
     }
 
-    @RequirePermission('product:read')
+    // @RequirePermission('product:read')
     @Get('search')
-    async searchProduct(@Query('name') name: string): Promise<ProductResponseDto[]> {
-        const products = await this.productService.searchProduct(name)
-        return instanceToPlain(products) as ProductResponseDto[]
+    async searchProduct(@Query('name') name: string, @Req() req: Request): Promise<ProductResponseDto[]> {
+        const products = await this.productService.searchProduct(name, req)
+        return plainToInstance(ProductResponseDto, products)
     }
 
-    @RequirePermission('product:read')
+    // @RequirePermission('product:read')
     @Get(':id')
-    async findProductById(@Param('id', ParseUUIDPipe) id: string): Promise<ProductResponseDto> {
-        const product = await this.productService.findProductById(id)
-        return instanceToPlain(product) as ProductResponseDto
+    async findProductById(@Param('id', ParseUUIDPipe) id: string, @Req() req: Request): Promise<ProductResponseDto> {
+        const product = await this.productService.findProductById(id, req)
+        return plainToInstance(ProductResponseDto, product)
     }
 
     @Get('category/:categoryId')
-    async findProductsByCategory(@Param('categoryId', ParseUUIDPipe) categoryId: string): Promise<ProductResponseDto[]> {
-        const products = await this.productService.findProductsByCategory(categoryId)
+    async findProductsByCategory(@Param('categoryId', ParseUUIDPipe) categoryId: string, @Req() req: Request): Promise<ProductResponseDto[]> {
+        const products = await this.productService.findProductsByCategory(categoryId, req)
         return instanceToPlain(products) as ProductResponseDto[]
     }
 
     @Get('brand/:brandId')
-    async findProductsByBrand(@Param('brandId', ParseUUIDPipe) brandId: string): Promise<ProductResponseDto[]> {
-        const products = await this.productService.findProductsByBrand(brandId)
+    async findProductsByBrand(@Param('brandId', ParseUUIDPipe) brandId: string, @Req() req: Request): Promise<ProductResponseDto[]> {
+        const products = await this.productService.findProductsByBrand(brandId, req)
         return instanceToPlain(products) as ProductResponseDto[]
     }
 
@@ -51,14 +54,14 @@ export class ProductController {
     @Post('')
     async createProduct(@Body() productData: CreateProductDto): Promise<ProductResponseDto> {
         const product = await this.productService.createProductWithVariant(productData)
-        return instanceToPlain(product) as ProductResponseDto
+        return plainToInstance(ProductResponseDto, product)
     }
 
     @RequirePermission('product:update')
     @Put(':id')
     async updateProduct(@Body() productData: UpdateProductDto, @Param('id', ParseUUIDPipe) id: string): Promise<ProductResponseDto> {
         const updateProduct = await this.productService.updateProduct(productData, id)
-        return instanceToPlain(updateProduct) as ProductResponseDto
+        return plainToInstance(ProductResponseDto, updateProduct)
     }
 
 }   
