@@ -1,0 +1,39 @@
+version: '3.8'
+services: 
+  postgres:  
+    image: postgres:17
+    container_name: nestjs_pg_db
+    ports:
+      - "5432:5432"
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+    networks:
+      - ecommerce_network
+  backend: 
+    build: .
+    container_name: nestjs_backend
+    restart: always
+    ports: 
+      - "2703:2703"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - ecommerce_network
+volumes:
+  postgres_data:
+  
+networks:
+  ecommerce_network:
+    driver: bridge

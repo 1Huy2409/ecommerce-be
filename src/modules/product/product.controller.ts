@@ -1,4 +1,4 @@
-import { Body, ClassSerializerInterceptor, Controller, Get, Param, ParseUUIDPipe, Post, Put, Query, Req, SerializeOptions, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, ClassSerializerInterceptor, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put, Query, Req, SerializeOptions, UseGuards, UseInterceptors } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/product/create-product.dto';
 import { ProductResponseDto } from './dto/product/product-response.dto';
@@ -41,13 +41,13 @@ export class ProductController {
     @Get('category/:categoryId')
     async findProductsByCategory(@Param('categoryId', ParseUUIDPipe) categoryId: string, @Req() req: Request): Promise<ProductResponseDto[]> {
         const products = await this.productService.findProductsByCategory(categoryId, req)
-        return instanceToPlain(products) as ProductResponseDto[]
+        return plainToInstance(ProductResponseDto, products)
     }
 
     @Get('brand/:brandId')
     async findProductsByBrand(@Param('brandId', ParseUUIDPipe) brandId: string, @Req() req: Request): Promise<ProductResponseDto[]> {
         const products = await this.productService.findProductsByBrand(brandId, req)
-        return instanceToPlain(products) as ProductResponseDto[]
+        return plainToInstance(ProductResponseDto, products)
     }
 
     @RequirePermission('product:create')
@@ -64,4 +64,12 @@ export class ProductController {
         return plainToInstance(ProductResponseDto, updateProduct)
     }
 
+    @RequirePermission('product:delete')
+    @Delete(':id')
+    async deleteProduct(@Param('id', ParseUUIDPipe) id: string): Promise<{ message: string }> {
+        const { message } = await this.productService.deleteProduct(id)
+        return {
+            message
+        }
+    }
 }   
