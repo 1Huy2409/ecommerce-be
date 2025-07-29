@@ -4,7 +4,7 @@ services:
     image: postgres:17
     container_name: nestjs_pg_db
     ports:
-      - "5432:5432"
+      - "5433:5432"
     restart: always
     env_file:
       - .env
@@ -12,8 +12,8 @@ services:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 1m30s
-      timeout: 30s
+      interval: 30s
+      timeout: 10s
       retries: 5
       start_period: 30s
     networks:
@@ -23,7 +23,7 @@ services:
     container_name: nestjs_backend
     restart: always
     ports: 
-      - "2703:2703"
+      - "${PORT}:${PORT}"
     env_file:
       - .env
     depends_on:
