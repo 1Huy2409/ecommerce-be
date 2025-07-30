@@ -8,9 +8,19 @@ import { CloudinaryModule } from './modules/storage/cloudinary/cloudinary.module
 import { ImageModule } from './modules/image/image.module';
 import { PermissionModule } from './modules/permission/permission.module';
 import { RoleModule } from './modules/role/role.module';
+import { redisStore } from 'cache-manager-redis-store';
+import { CacheModule } from '@nestjs/cache-manager';
 @Module({
   imports: [ConfigModule.forRoot({
     isGlobal: true,
+  }),
+  CacheModule.register({
+    isGlobal: true,
+    store: redisStore,
+    host: process.env.REDIS_HOST || 'redis',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+    ttl: 300,
+    max: 1000
   }),
   TypeOrmModule.forRoot({
     type: 'postgres',

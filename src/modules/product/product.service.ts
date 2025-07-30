@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException, Req } from '@nestjs/common';
+import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException, Req } from '@nestjs/common';
 import { CreateProductDto } from './dto/product/create-product.dto';
 import { Product } from 'src/database/entities/product.entity';
 import { Category } from 'src/database/entities/category.entity';
@@ -9,8 +9,10 @@ import { ImageService } from '../image/image.service';
 import { ProductVariantService } from './product-variant.service';
 import { ProductVariant } from 'src/database/entities/product-variant.entity';
 import { UpdateProductDto } from './dto/product/update-product.dto';
-import e, { Request } from 'express';
+import { Request } from 'express';
 import { User } from 'src/database/entities/user.entity';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 @Injectable()
 export class ProductService {
     constructor(
@@ -22,21 +24,39 @@ export class ProductService {
         private categoriesRepository: Repository<Category>,
         private imageService: ImageService,
         private variantService: ProductVariantService,
-        private dataSource: DataSource
+        private dataSource: DataSource,
+        @Inject(CACHE_MANAGER)
+        private cacheManager: Cache
     ) { }
 
     async findAllProduct(@Req() req: Request): Promise<Product[]> {
         const user: User = req.user as User
+        const cacheKey = `products:all:role:${user.role.name}`
+
+        // check cache first
+        const cacheProducts = await this.cacheManager.get<Product[]>(cacheKey);
+        if (cacheProducts) {
+            return cacheProducts
+        }
+
         const whereCondition: any = {}
         if (user.role.name === 'customer') {
             whereCondition.isLocked = false
         }
         const products = await this.productsRepository.find({ where: whereCondition, relations: ['variants', 'images'] })
+        await this.cacheManager.set(cacheKey, products, 180)
         return products
     }
 
     async findProductById(id: string, req: Request): Promise<Product> {
         const user: User = req.user as User
+        const cacheKey = `products:all:role:${user.role.name}`
+
+        const cacheProduct = await this.cacheManager.get<Product>(cacheKey)
+        if (cacheProduct) {
+            return cacheProduct
+        }
+
         const whereCondition: any = {}
         if (user.role.name === 'customer') {
             whereCondition.isLocked = false
@@ -45,6 +65,7 @@ export class ProductService {
         if (!product) {
             throw new NotFoundException(`Product with ID ${id} is not found!`)
         }
+        await this.cacheManager.set(cacheKey, product, 180)
         return product
     }
 
