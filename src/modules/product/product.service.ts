@@ -11,8 +11,8 @@ import { ProductVariant } from 'src/database/entities/product-variant.entity';
 import { UpdateProductDto } from './dto/product/update-product.dto';
 import { Request } from 'express';
 import { User } from 'src/database/entities/user.entity';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 @Injectable()
 export class ProductService {
     constructor(
@@ -33,30 +33,54 @@ export class ProductService {
         const user: User = req.user as User
         const cacheKey = `products:all:role:${user.role.name}`
 
-        // check cache first
-        const cacheProducts = await this.cacheManager.get<Product[]>(cacheKey);
-        if (cacheProducts) {
-            return cacheProducts
-        }
+        console.log(`🔍 [CACHE] Checking cache for key: ${cacheKey}`)
 
-        const whereCondition: any = {}
-        if (user.role.name === 'customer') {
-            whereCondition.isLocked = false
+        try {
+            const cacheProducts = await this.cacheManager.get<Product[]>(cacheKey);
+            if (cacheProducts) {
+                console.log(`✅ [CACHE HIT] Data found in cache! Products count: ${cacheProducts.length}`)
+                console.log(`✅ [CACHE HIT] Data found in cache!: ${cacheProducts}`)
+                return cacheProducts
+            }
+
+            console.log(`❌ [CACHE MISS] Cache miss, fetching from database...`)
+            const whereCondition: any = {}
+            if (user.role.name === 'customer') {
+                whereCondition.isLocked = false
+            }
+
+            const startTime = Date.now()
+            const products = await this.productsRepository.find({
+                where: whereCondition,
+                relations: ['variants', 'images']
+            })
+            const dbTime = Date.now() - startTime
+
+            console.log(`🗄️ [DATABASE] Fetched ${products.length} products from DB in ${dbTime}ms`)
+
+            // Set cache with 3 minutes TTL
+            await this.cacheManager.set(cacheKey, products, 180000)
+            console.log(`💾 [CACHE SET] Data cached with key: ${cacheKey}`)
+
+            return products
+        } catch (error) {
+            console.error(`🚨 [CACHE ERROR] Redis cache error:`, error)
+            // Fallback to database if cache fails
+            console.log(`🔄 [FALLBACK] Falling back to database...`)
+            const whereCondition: any = {}
+            if (user.role.name === 'customer') {
+                whereCondition.isLocked = false
+            }
+            return await this.productsRepository.find({
+                where: whereCondition,
+                relations: ['variants', 'images']
+            })
         }
-        const products = await this.productsRepository.find({ where: whereCondition, relations: ['variants', 'images'] })
-        await this.cacheManager.set(cacheKey, products, 180)
-        return products
     }
 
     async findProductById(id: string, req: Request): Promise<Product> {
         const user: User = req.user as User
-        const cacheKey = `products:all:role:${user.role.name}`
-
-        const cacheProduct = await this.cacheManager.get<Product>(cacheKey)
-        if (cacheProduct) {
-            return cacheProduct
-        }
-
+        const cacheKey = `product:${id}:role:${user.role.name}`
         const whereCondition: any = {}
         if (user.role.name === 'customer') {
             whereCondition.isLocked = false
@@ -65,7 +89,6 @@ export class ProductService {
         if (!product) {
             throw new NotFoundException(`Product with ID ${id} is not found!`)
         }
-        await this.cacheManager.set(cacheKey, product, 180)
         return product
     }
 

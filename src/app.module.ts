@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ProductModule } from './modules/product/product.module';
 import { UserModule } from './modules/user/user.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -8,19 +8,29 @@ import { CloudinaryModule } from './modules/storage/cloudinary/cloudinary.module
 import { ImageModule } from './modules/image/image.module';
 import { PermissionModule } from './modules/permission/permission.module';
 import { RoleModule } from './modules/role/role.module';
-import { redisStore } from 'cache-manager-redis-store';
 import { CacheModule } from '@nestjs/cache-manager';
+import { redisStore } from 'cache-manager-redis-yet';
 @Module({
   imports: [ConfigModule.forRoot({
     isGlobal: true,
   }),
-  CacheModule.register({
+  CacheModule.registerAsync({
     isGlobal: true,
-    store: redisStore,
-    host: process.env.REDIS_HOST || 'redis',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
-    ttl: 300,
-    max: 1000
+    imports: [ConfigModule],
+    useFactory: async (configService: ConfigService) => {
+      const store = await redisStore({
+        socket: {
+          host: configService.get('REDIS_HOST', 'redis'),
+          port: parseInt(configService.get('REDIS_PORT', '6379'))
+        }
+      });
+      return {
+        store: () => store,
+        ttl: 300 * 1000,
+        max: 1000
+      }
+    },
+    inject: [ConfigService]
   }),
   TypeOrmModule.forRoot({
     type: 'postgres',
