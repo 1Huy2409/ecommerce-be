@@ -19,8 +19,8 @@ export class ProductController {
     ) { }
 
     @Get('')
-    async findAllProduct(@Req() req: Request): Promise<ProductResponseDto[]> {
-        const products = await this.productService.findAllProduct(req)
+    async findAllProduct(@Req() req: Request, @Query('page') page: number, @Query('limit') limit: number): Promise<ProductResponseDto[]> {
+        const products = await this.productService.findAllProduct(req, page, limit)
         return plainToInstance(ProductResponseDto, products)
     }
 

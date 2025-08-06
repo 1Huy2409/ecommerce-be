@@ -10,10 +10,12 @@ import { Category } from 'src/database/entities/category.entity';
 import { ProductVariantService } from './product-variant.service';
 import { ImageModule } from '../image/image.module';
 import { VariantController } from './product-variant.controller';
+import { RoleModule } from '../role/role.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Product, ProductVariant, Brand, Category]),
-    ImageModule
+    ImageModule,
+    RoleModule
   ],
   controllers: [ProductController, VariantController],
   providers: [

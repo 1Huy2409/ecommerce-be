@@ -1,18 +1,19 @@
-import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException, Req } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException, Req } from '@nestjs/common';
 import { CreateProductDto } from './dto/product/create-product.dto';
 import { Product } from 'src/database/entities/product.entity';
 import { Category } from 'src/database/entities/category.entity';
 import { Brand } from 'src/database/entities/brand.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ILike, Like, Not, Repository, DataSource, EntityManager } from 'typeorm';
+import { ILike, Not, Repository, DataSource, EntityManager } from 'typeorm';
 import { ImageService } from '../image/image.service';
 import { ProductVariantService } from './product-variant.service';
 import { ProductVariant } from 'src/database/entities/product-variant.entity';
 import { UpdateProductDto } from './dto/product/update-product.dto';
 import { Request } from 'express';
 import { User } from 'src/database/entities/user.entity';
-import { Cache } from 'cache-manager';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { RoleService } from '../role/role.service';
+import { CacheService } from '../cache/cache.service';
+
 @Injectable()
 export class ProductService {
     constructor(
@@ -24,63 +25,48 @@ export class ProductService {
         private categoriesRepository: Repository<Category>,
         private imageService: ImageService,
         private variantService: ProductVariantService,
+        private roleService: RoleService,
         private dataSource: DataSource,
-        @Inject(CACHE_MANAGER)
-        private cacheManager: Cache
+        private cacheService: CacheService, // Inject custom cache service
     ) { }
 
-    async findAllProduct(@Req() req: Request): Promise<Product[]> {
+    async findAllProduct(@Req() req: Request, page: number, limit: number): Promise<Product[]> {
+        const pageQuery = page || 1
+        const limitQuery = limit || 1
+        const skip = (pageQuery - 1) * limitQuery
         const user: User = req.user as User
-        const cacheKey = `products:all:role:${user.role.name}`
+        const cacheKey = `products:all:role:${user.role.name}:skip:${skip}:limit:${limitQuery}`
 
-        console.log(`🔍 [CACHE] Checking cache for key: ${cacheKey}`)
-
-        try {
-            const cacheProducts = await this.cacheManager.get<Product[]>(cacheKey);
-            if (cacheProducts) {
-                console.log(`✅ [CACHE HIT] Data found in cache! Products count: ${cacheProducts.length}`)
-                console.log(`✅ [CACHE HIT] Data found in cache!: ${cacheProducts}`)
-                return cacheProducts
-            }
-
-            console.log(`❌ [CACHE MISS] Cache miss, fetching from database...`)
-            const whereCondition: any = {}
-            if (user.role.name === 'customer') {
-                whereCondition.isLocked = false
-            }
-
-            const startTime = Date.now()
-            const products = await this.productsRepository.find({
-                where: whereCondition,
-                relations: ['variants', 'images']
-            })
-            const dbTime = Date.now() - startTime
-
-            console.log(`🗄️ [DATABASE] Fetched ${products.length} products from DB in ${dbTime}ms`)
-
-            // Set cache with 3 minutes TTL
-            await this.cacheManager.set(cacheKey, products, 180000)
-            console.log(`💾 [CACHE SET] Data cached with key: ${cacheKey}`)
-
-            return products
-        } catch (error) {
-            console.error(`🚨 [CACHE ERROR] Redis cache error:`, error)
-            // Fallback to database if cache fails
-            console.log(`🔄 [FALLBACK] Falling back to database...`)
-            const whereCondition: any = {}
-            if (user.role.name === 'customer') {
-                whereCondition.isLocked = false
-            }
-            return await this.productsRepository.find({
-                where: whereCondition,
-                relations: ['variants', 'images']
-            })
+        const cacheProducts = await this.cacheService.get<Product[]>(cacheKey);
+        if (cacheProducts) {
+            return cacheProducts
         }
+
+        const whereCondition: any = {}
+        if (user.role.name === 'customer') {
+            whereCondition.isLocked = false
+        }
+        const products = await this.productsRepository.find({
+            skip: skip,
+            take: limitQuery,
+            where: whereCondition,
+            relations: ['variants', 'images']
+        })
+
+        await this.cacheService.set(cacheKey, products, 180);
+
+        return products
     }
 
     async findProductById(id: string, req: Request): Promise<Product> {
         const user: User = req.user as User
         const cacheKey = `product:${id}:role:${user.role.name}`
+
+        const cacheProduct = await this.cacheService.get<Product>(cacheKey)
+        if (cacheProduct) {
+            return cacheProduct
+        }
+
         const whereCondition: any = {}
         if (user.role.name === 'customer') {
             whereCondition.isLocked = false
@@ -89,6 +75,8 @@ export class ProductService {
         if (!product) {
             throw new NotFoundException(`Product with ID ${id} is not found!`)
         }
+
+        await this.cacheService.set(cacheKey, product, 180)
         return product
     }
 
@@ -206,8 +194,18 @@ export class ProductService {
     }
 
     async updateProduct(productData: UpdateProductDto, id: string): Promise<Product | null> {
+        const allRoleNames: string[] = (await this.roleService.getAllRoles()).map(item => item.name)
+        console.log(allRoleNames)
+        let deleteKeys: string[] = []
+
+        for (const name of allRoleNames) {
+            const key = `product:${id}:role:${name}`
+            deleteKeys.push(key)
+        }
+        const pattern = `products:all:role:*:skip:*:limit:*`
+        await this.removeKeyByPattern(pattern)
+        await this.removeKeyValue(deleteKeys)
         const { name, brandId, categoryId, productImageIds, variants, ...restData } = productData
-        console.log("PRODUCT REST DATA: ", restData)
         const updateProduct = await this.productsRepository.findOne({ where: { id }, relations: ['variants', 'images'] })
         if (!updateProduct) {
             throw new NotFoundException(`Product with ID ${id} is not found!`)
@@ -229,6 +227,8 @@ export class ProductService {
         }
         updateProduct.brand = existingBrand
         updateProduct.category = existingCategory
+
+        // transaction here
         return await this.dataSource.transaction(async (manager: EntityManager) => {
             try {
                 const saveProduct = await manager.save(Product, {
@@ -309,6 +309,16 @@ export class ProductService {
     }
 
     async deleteProduct(id: string): Promise<{ message: string }> {
+        // get all role of your project here
+        const allRoleNames: string[] = (await this.roleService.getAllRoles()).map(item => item.name)
+        let deleteKeys: string[] = []
+        for (const name of allRoleNames) {
+            const key = `product:${id}:role:${name}`
+            deleteKeys.push(key)
+        }
+        const pattern = `products:all:role:*:skip:*:limit:*`
+        await this.removeKeyByPattern(pattern)
+        await this.removeKeyValue(deleteKeys)
         const deleteProduct = await this.productsRepository.findOne({
             where: { id }
         })
@@ -320,6 +330,16 @@ export class ProductService {
             message: "Delete product successfully!"
         }
     }
+    async removeKeyValue(cacheKeys: string[]) {
+        for (const key of cacheKeys) {
+            await this.cacheService.del(key);
+        }
+    }
+
+    async removeKeyByPattern(pattern: string): Promise<void> {
+        await this.cacheService.delByPattern(pattern);
+    }
+
 }
 
 
