@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, JoinColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, JoinColumn, ManyToMany, JoinTable } from "typeorm";
 import { OrderItem } from "./order-item.entity";
 import { CartItem } from "./cart-item.entity";
 import { Product } from "./product.entity";
@@ -7,6 +7,9 @@ import { Image } from "./image.entity";
 export class ProductVariant {
     @PrimaryGeneratedColumn('uuid')
     id: string
+
+    @Column({ length: 20 })
+    color: string
 
     @Column({ type: 'decimal', precision: 4, scale: 1 })
     size: number
@@ -36,9 +39,25 @@ export class ProductVariant {
     @OneToMany(() => OrderItem, (orderItem) => orderItem.productVariant)
     orderItems: OrderItem[];
 
-    @OneToMany(() => Image, (image) => image.product_variant, {
-        cascade: ['insert', 'update', 'remove'],
+    // @OneToMany(() => Image, (image) => image.product_variant, {
+    //     cascade: ['insert', 'update', 'remove'],
+    //     eager: true
+    // })
+    // images: Image[]
+
+    @ManyToMany(() => Image, (image) => image.variants, {
         eager: true
+    })
+    @JoinTable({
+        name: 'variant_image',
+        joinColumn: {
+            name: 'variant_id',
+            referencedColumnName: 'id'
+        },
+        inverseJoinColumn: {
+            name: 'image_id',
+            referencedColumnName: 'id'
+        }
     })
     images: Image[]
 }

@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToMany, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { Product } from './product.entity'
 import { ProductVariant } from "./product-variant.entity";
 @Entity("images")
@@ -28,10 +28,6 @@ export class Image {
     @JoinColumn({ name: 'product_id' })
     product: Product
 
-    @ManyToOne(() => ProductVariant, (product_variant) => product_variant.images, {
-        nullable: true,
-        onDelete: 'CASCADE'
-    })
-    @JoinColumn({ name: 'variant_id' })
-    product_variant: ProductVariant
+    @ManyToMany(() => ProductVariant, (variant) => variant.images)
+    variants: ProductVariant[]
 }

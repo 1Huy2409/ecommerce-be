@@ -19,7 +19,12 @@ services:
     networks:
       - ecommerce_network
   backend: 
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes: 
+      - .:/app
+      - /app/node_modules
     container_name: nestjs_backend
     restart: always
     ports: 
