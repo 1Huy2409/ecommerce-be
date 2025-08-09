@@ -26,13 +26,14 @@ export class ProductVariantService {
     }
 
     async createVariantTransaction(manager: EntityManager, variantData: CreateProductVariantDto | UpdateProductVariantDto, parentProduct: Product): Promise<ProductVariant | null> {
-        const { size, sku, additionalPrice, stockQuantity, productVariantImageIds } = variantData
+        const { color, size, sku, additionalPrice, stockQuantity, productVariantImageIds } = variantData
         const existingSku = await manager.findOne(ProductVariant, { where: { sku } })
         if (existingSku) {
             throw new ConflictException("This sku for your variant have already exist!")
         }
         try {
             const newVariant = manager.create(ProductVariant, {
+                color,
                 size,
                 sku,
                 additionalPrice,
@@ -40,6 +41,7 @@ export class ProductVariantService {
                 product: parentProduct
             })
             const saveVariant = await manager.save(ProductVariant, newVariant)
+            console.log("==== NEW VARIANT ==== :", saveVariant)
             if (productVariantImageIds && productVariantImageIds.length > 0) {
                 for (let i = 0; i < productVariantImageIds.length; i++) {
                     let variantImageId = productVariantImageIds[i]
@@ -63,7 +65,7 @@ export class ProductVariantService {
 
     async updateVariant(variantId: string, updateVariantDto: UpdateProductVariantDto): Promise<ProductVariant | null | undefined> {
         const { sku, productVariantImageIds, ...restData } = updateVariantDto
-        const updateVariant = await this.variantsRepository.findOne({ where: { id: variantId } })
+        const updateVariant = await this.variantsRepository.findOne({ where: { id: variantId }, relations: ['images', 'product'] })
         console.log("Variant tim duoc: ", updateVariant)
         console.log("Rest data: ", restData)
         const existingSku = await this.variantsRepository.findOne({ where: { sku, id: Not(variantId) } })
@@ -103,7 +105,7 @@ export class ProductVariantService {
                     if (removeImageIds && removeImageIds.length > 0) {
                         for (let i = 0; i < removeImageIds.length; i++) {
                             const imageId = removeImageIds[i]
-                            await this.imageService.removeImageFromProduct(imageId)
+                            await this.imageService.detachImageFromProduct(manager, imageId, variantId)
                         }
                     }
                 }
@@ -122,7 +124,7 @@ export class ProductVariantService {
     }
     async updateVariantTransaction(manager: EntityManager, variantId: string, updateVariantDto: UpdateProductVariantDto): Promise<ProductVariant> {
         const { id, sku, productVariantImageIds, ...restData } = updateVariantDto
-        const updateVariant = await manager.findOne(ProductVariant, { where: { id: variantId }, relations: ['images'] })
+        const updateVariant = await manager.findOne(ProductVariant, { where: { id: variantId }, relations: ['images', 'product'] })
         const existingSku = await manager.findOne(ProductVariant, { where: { sku, id: Not(variantId) } })
         if (existingSku) {
             throw new ConflictException("This sku for your variant have already exist!")
@@ -158,7 +160,7 @@ export class ProductVariantService {
             if (removeImageIds && removeImageIds.length > 0) {
                 for (let i = 0; i < removeImageIds.length; i++) {
                     const imageId = removeImageIds[i]
-                    await this.imageService.removeImageFromProduct(imageId)
+                    await this.imageService.detachImageFromProduct(manager, imageId, variantId)
                 }
             }
         }

@@ -23,10 +23,9 @@ export class Image {
 
     @ManyToOne(() => Product, (product) => product.images, {
         nullable: true,
-        onDelete: 'CASCADE'
     })
     @JoinColumn({ name: 'product_id' })
-    product: Product
+    product: Product | null
 
     @ManyToMany(() => ProductVariant, (variant) => variant.images)
     variants: ProductVariant[]

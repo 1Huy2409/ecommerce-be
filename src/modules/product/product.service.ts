@@ -187,7 +187,7 @@ export class ProductService {
                 return finalProduct
             }
             catch (error) {
-                console.log("error: ", error)
+                console.log("transaction error: ", error)
                 throw error
             }
         })
@@ -195,7 +195,6 @@ export class ProductService {
 
     async updateProduct(productData: UpdateProductDto, id: string): Promise<Product | null> {
         const allRoleNames: string[] = (await this.roleService.getAllRoles()).map(item => item.name)
-        console.log(allRoleNames)
         let deleteKeys: string[] = []
 
         for (const name of allRoleNames) {
@@ -205,6 +204,7 @@ export class ProductService {
         const pattern = `products:all:role:*:skip:*:limit:*`
         await this.removeKeyByPattern(pattern)
         await this.removeKeyValue(deleteKeys)
+
         const { name, brandId, categoryId, productImageIds, variants, ...restData } = productData
         const updateProduct = await this.productsRepository.findOne({ where: { id }, relations: ['variants', 'images'] })
         if (!updateProduct) {
@@ -239,13 +239,12 @@ export class ProductService {
                 if (variants) {
                     const currentVariantIds = updateProduct.variants.map(v => v.id)
                     const incomingVariantIds = variants.filter(v => v.id).map(v => v.id!)
-
                     const variantsToDeleteIds = currentVariantIds.filter((id) => !incomingVariantIds.includes(id))
                     for (const variantId of variantsToDeleteIds) {
                         await this.variantService.deleteVariant(variantId)
                     }
                     for (const variant of variants) {
-                        if (variant.id) {
+                        if (variant.id !== undefined) {
                             const existingVariant = updateProduct.variants.find((v) => v.id === variant.id)
                             if (existingVariant) {
                                 const updateVariant = await this.variantService.updateVariantTransaction(manager, variant.id, variant)
@@ -266,8 +265,8 @@ export class ProductService {
                     await manager.save(Product, saveProduct)
                 }
                 if (productImageIds) {
-                    const newProductImageIds = productImageIds
-                    const oldProductImageIds = updateProduct.images.map((item) => item.id)
+                    const newProductImageIds = productImageIds // all image ids from request
+                    const oldProductImageIds = updateProduct.images.map((item) => item.id) // old image ids in database
                     const attachImageIds = newProductImageIds.filter(item => !oldProductImageIds.includes(item))
                     const removeImageIds = oldProductImageIds.filter(item => !newProductImageIds.includes(item))
                     if (attachImageIds && attachImageIds.length > 0) {
@@ -287,7 +286,7 @@ export class ProductService {
                     if (removeImageIds && removeImageIds.length > 0) {
                         for (let i = 0; i < removeImageIds.length; i++) {
                             const imageId = removeImageIds[i]
-                            await this.imageService.removeImageFromProduct(imageId)
+                            await this.imageService.detachImageFromProduct(manager, imageId, null)
                         }
                     }
                 }

@@ -8,7 +8,7 @@ export class ProductVariant {
     @PrimaryGeneratedColumn('uuid')
     id: string
 
-    @Column({ length: 20 })
+    @Column({ nullable: true })
     color: string
 
     @Column({ type: 'decimal', precision: 4, scale: 1 })
@@ -38,12 +38,6 @@ export class ProductVariant {
 
     @OneToMany(() => OrderItem, (orderItem) => orderItem.productVariant)
     orderItems: OrderItem[];
-
-    // @OneToMany(() => Image, (image) => image.product_variant, {
-    //     cascade: ['insert', 'update', 'remove'],
-    //     eager: true
-    // })
-    // images: Image[]
 
     @ManyToMany(() => Image, (image) => image.variants, {
         eager: true

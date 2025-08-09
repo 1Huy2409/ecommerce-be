@@ -4,6 +4,10 @@ import { Type } from "class-transformer";
 
 export class CreateProductVariantDto {
     @IsNotEmpty()
+    @IsString()
+    color: string
+
+    @IsNotEmpty()
     @IsNumber()
     size: number
 

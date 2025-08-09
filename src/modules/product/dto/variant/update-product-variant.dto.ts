@@ -7,6 +7,10 @@ export class UpdateProductVariantDto {
 
     @IsOptional()
     @IsNotEmpty()
+    color?: string
+
+    @IsOptional()
+    @IsNotEmpty()
     @IsNumber()
     size?: number
 

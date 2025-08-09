@@ -24,11 +24,11 @@ export class ImageService {
         return await this.imagesRepository.save(newImage)
     }
     async attachImageToProductTransaction(manager: EntityManager, imageId: string, product: Product, isThumbnail: boolean, order: number) {
-        const image = await manager.findOne(Image, { where: { id: imageId }, relations: ['product', 'product_variant'] })
+        const image = await manager.findOne(Image, { where: { id: imageId }, relations: ['product', 'variants'] })
         if (!image) {
             throw new NotFoundException(`Image with ID ${imageId} is not found!`)
         }
-        if (image.product || image.product_variant) {
+        if (image.variants.length > 0 || image.product !== null) {
             throw new ConflictException("This image has its owner")
         }
         image.isThumbnail = isThumbnail
@@ -37,22 +37,58 @@ export class ImageService {
         await manager.save(Image, image)
     }
     async attachImageToVariantTransaction(manager: EntityManager, imageId: string, variant: ProductVariant, isThumbnail: boolean, order: number) {
-        const image = await manager.findOne(Image, { where: { id: imageId }, relations: ['product', 'product_variant'] })
+        const image = await manager.findOne(Image, { where: { id: imageId }, relations: ['product', 'variants', 'variants.product'] })
         if (!image) {
             throw new NotFoundException(`Image with ID ${imageId} is not found!`)
         }
-        if (image.product || image.product_variant) {
-            throw new ConflictException("This image has its owner")
+        // validation image belongs to product
+        if (image.product) {
+            throw new ConflictException("This image has its product")
+        }
+        // validation image belongs to variants with same product owner
+        if (image.variants && image.variants.length > 0) {
+            const existingProductIds = image.variants.map(item => item.product.id)
+            const uniqueProductIds = [...new Set(existingProductIds)]
+            if (uniqueProductIds.length > 0 && !uniqueProductIds.includes(variant.product.id)) {
+                const uniqueProduct = await manager.findOne(Product, {
+                    where: {
+                        id: uniqueProductIds[0]
+                    }
+                })
+                if (!uniqueProduct) {
+                    throw new NotFoundException(`Product with ID ${uniqueProductIds[0]} is not found!`)
+                }
+                // throw conflict exception
+                throw new ConflictException(`This image is already used by variants of product: "${uniqueProduct.name}". Cannot assign to variants of "${variant.product.name}"`)
+            }
+        }
+        const currentVariants: ProductVariant[] = image.variants
+        const currentVariantIds: string[] = currentVariants.map(item => item.id)
+        if (!currentVariantIds.includes(variant.id)) {
+            currentVariants.push(variant)
+            image.variants = currentVariants
         }
         image.isThumbnail = isThumbnail ? isThumbnail : false
         image.order = order ? order : 0
-        image.product_variant = variant
         await manager.save(Image, image)
     }
-    async removeImageFromProduct(imageId: string) {
-        const result: DeleteResult = await this.imagesRepository.delete({ id: imageId })
-        if (result.affected === 0) {
-            throw new NotFoundException(`Image with ID ${imageId} not found!`)
+    async detachImageFromProduct(manager: EntityManager, imageId: string, variantId: string | null) {
+        const removeImage = await manager.findOne(Image, {
+            where: { id: imageId },
+            relations: ['product', 'variants']
+        })
+        if (!removeImage) {
+            throw new NotFoundException(`Image with ID ${imageId} is not found!`)
         }
+
+        if (removeImage.product !== null) {
+            removeImage.product = null
+        }
+        if (removeImage.variants !== null) {
+            const newVariants = removeImage.variants.filter(item => item.id !== variantId)
+            removeImage.variants = newVariants
+        }
+
+        await manager.save(Image, removeImage)
     }
 }

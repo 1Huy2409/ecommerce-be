@@ -6,6 +6,8 @@ export class VariantResponseDto {
     @Expose()
     id: string
     @Expose()
+    color: string
+    @Expose()
     size: number
     @Expose()
     sku: string
