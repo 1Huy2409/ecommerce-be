@@ -1,8 +1,13 @@
-import { Controller, Post, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import { Controller, Get, Post, Query, SerializeOptions, UploadedFiles, UseInterceptors } from '@nestjs/common';
 import { ImageService } from './image.service';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
+import { ImageResponseDto } from './dto/image-response.dto';
+import { plainToInstance } from 'class-transformer';
 @Controller('images')
+@SerializeOptions({
+    excludeExtraneousValues: true
+})
 export class ImageController {
     constructor(private imageService: ImageService) { }
 
@@ -21,5 +26,13 @@ export class ImageController {
             })
         }
         return uploadImages
+    }
+
+    // show images base on producr || variant || nothing
+    @Get('')
+    async getImagesByOwner(@Query('owner') owner: string): Promise<ImageResponseDto[]> {
+        console.log("owner: ", owner)
+        const images = await this.imageService.getImagesByOwner(owner)
+        return plainToInstance(ImageResponseDto, images)
     }
 }

@@ -2,7 +2,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CloudinaryService } from '../storage/cloudinary/cloudinary.service';
 import { Image } from 'src/database/entities/image.entity';
-import { DeleteResult, EntityManager, Repository } from 'typeorm';
+import { DeleteResult, EntityManager, IsNull, Not, Repository } from 'typeorm';
 import { Product } from 'src/database/entities/product.entity';
 import { ProductVariant } from 'src/database/entities/product-variant.entity';
 import { error } from 'console';
@@ -90,5 +90,44 @@ export class ImageService {
         }
 
         await manager.save(Image, removeImage)
+    }
+
+    async getImagesByOwner(queryOwner: string): Promise<Image[]> {
+        let images: Image[] | null = []
+        const owner = queryOwner ? queryOwner : ""
+        switch (owner.toLowerCase()) {
+            case "product":
+                images = await this.imagesRepository.find(
+                    {
+                        where: {
+                            product: Not(IsNull())
+                        }
+                    }
+                )
+                break;
+            case "variant":
+                const rawImages = await this.imagesRepository.find(
+                    {
+                        relations: ['variants']
+                    }
+                )
+                images = rawImages.filter(item => item.variants.length > 0)
+                break;
+            case "noowner":
+                const rawData = await this.imagesRepository.find(
+                    {
+                        where: {
+                            product: IsNull()
+                        },
+                        relations: ["variants"]
+                    }
+                )
+                images = rawData.filter(item => item.variants.length === 0)
+                break;
+            default:
+                images = await this.imagesRepository.find()
+                break;
+        }
+        return images
     }
 }
