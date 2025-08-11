@@ -8,7 +8,6 @@ export class Cart {
 
     @OneToOne(() => User, (user) => user.cart, {
         nullable: false,
-        onDelete: 'CASCADE'
     })
     user: User
 

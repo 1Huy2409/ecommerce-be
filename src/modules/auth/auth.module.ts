@@ -9,6 +9,7 @@ import { ConfigService } from "@nestjs/config";
 import { APP_GUARD } from "@nestjs/core";
 import { AuthGuard } from "./guards/auth.guard";
 import { GoogleStrategy } from "./strategies/google.strategy";
+import { CartModule } from "../cart/cart.module";
 @Module({
     imports: [
         TypeOrmModule.forFeature([User, Role]),
@@ -20,7 +21,8 @@ import { GoogleStrategy } from "./strategies/google.strategy";
                     expiresIn: config.get<string>('JWT_EXPIRE')
                 }
             })
-        })
+        }),
+        CartModule
     ],
     exports: [AuthModule],
     controllers: [AuthController],

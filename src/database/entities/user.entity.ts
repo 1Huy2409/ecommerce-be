@@ -38,7 +38,10 @@ export class User {
     @OneToMany(() => Order, (order) => order.user)
     orders: Order[]
 
-    @OneToOne(() => Cart, (cart) => cart.user)
+    @OneToOne(() => Cart, (cart) => cart.user, {
+        onDelete: 'CASCADE'
+    })
+    @JoinColumn()
     cart: Cart
 
     @Column({ unique: true, nullable: true })

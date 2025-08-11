@@ -10,6 +10,7 @@ import { Repository } from "typeorm";
 import * as bcrypt from 'bcrypt'
 import { JwtService } from "@nestjs/jwt";
 import { RequestWithUser } from "./types/auth.type";
+import { CartService } from "../cart/cart.service";
 @Injectable()
 export class AuthService {
     constructor(
@@ -17,7 +18,8 @@ export class AuthService {
         private usersRepository: Repository<User>,
         @InjectRepository(Role)
         private rolesRepository: Repository<Role>,
-        private jwtService: JwtService
+        private jwtService: JwtService,
+        private cartService: CartService
     ) { }
     async login(credential: LoginDTO): Promise<{ accessToken: string, refreshToken: string }> {
         const { username, password } = credential
@@ -92,7 +94,10 @@ export class AuthService {
             password: hashedPassword,
             role: customerRole
         }
-        return this.usersRepository.save(newUserData)
+        const newUser = await this.usersRepository.save(newUserData)
+        // create cart
+        await this.cartService.createCart(newUser)
+        return newUser
     }
     async refreshToken(@Req() req: Request): Promise<{ accessToken: string }> {
         const refreshToken = req.cookies['refreshToken'];

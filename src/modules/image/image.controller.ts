@@ -31,7 +31,6 @@ export class ImageController {
     // show images base on producr || variant || nothing
     @Get('')
     async getImagesByOwner(@Query('owner') owner: string): Promise<ImageResponseDto[]> {
-        console.log("owner: ", owner)
         const images = await this.imageService.getImagesByOwner(owner)
         return plainToInstance(ImageResponseDto, images)
     }
