@@ -40,7 +40,7 @@ export class AuthGuard implements CanActivate {
         secret: process.env.JWT_SECRET,
       });
       const { sub, username, email } = payload;
-      const user = await this.usersRepository.findOne({ where: { username } })
+      const user = await this.usersRepository.findOne({ where: { username }, relations: ['cart'] })
       if (!user) {
         throw new NotFoundException("User not found in database!")
       }
