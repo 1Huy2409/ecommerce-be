@@ -6,6 +6,7 @@ import { Cart } from 'src/database/entities/cart.entity';
 import { ProductVariant } from 'src/database/entities/product-variant.entity';
 import { User } from 'src/database/entities/user.entity';
 import { Repository } from 'typeorm';
+import { UpdateCartItemDto } from './dto/cart-item/update-cart-item.dto';
 
 @Injectable()
 export class CartService {
@@ -24,6 +25,20 @@ export class CartService {
             }
         )
         return await this.cartRepository.save(newCart)
+    }
+    async viewCart(user: User): Promise<Cart> {
+        const cart = await this.cartRepository.findOne(
+            {
+                where: {
+                    user: { id: user.id }
+                },
+                relations: ['items', 'items.productVariant', 'items.productVariant.product']
+            }
+        )
+        if (!cart) {
+            throw new NotFoundException('You dont have any cart yet!')
+        }
+        return cart
     }
     async addToCart(user: User, cartItemData: CreateCartItemDto): Promise<Cart> {
         const cart = await this.cartRepository.findOne(
@@ -86,5 +101,51 @@ export class CartService {
             throw new NotFoundException('Cart not found!')
         }
         return finalCart
+    }
+    async updateCartItem(cartItemId: string, updateData: UpdateCartItemDto): Promise<CartItem> {
+        const cartItem = await this.cartItemRepository.findOne(
+            {
+                where: { id: cartItemId },
+                relations: ['productVariant', 'productVariant.product']
+            }
+        )
+        if (!cartItem) {
+            throw new NotFoundException('Cart item is not found!')
+        }
+        const { quantity } = updateData
+        if (quantity) {
+            if (quantity > cartItem.productVariant.stockQuantity) {
+                throw new BadRequestException('Variant quantity is over stock!')
+            }
+            cartItem.quantity = quantity
+            return await this.cartItemRepository.save(cartItem)
+        }
+        return cartItem
+    }
+    async deleteCartItem(cartItemId: string): Promise<{ message: string }> {
+        await this.cartItemRepository.delete({ id: cartItemId })
+        return {
+            message: "Delete successfully!"
+        }
+    }
+    async clearCart(user: User): Promise<{ message: string }> {
+        const cart = await this.cartRepository.findOne(
+            {
+                where: {
+                    user: { id: user.id }
+                }
+            }
+        )
+        if (!cart) {
+            throw new NotFoundException('Cart is not found!')
+        }
+        await this.cartItemRepository.delete(
+            {
+                cart: { id: cart.id }
+            }
+        )
+        return {
+            message: 'Clear cart successfully!'
+        }
     }
 }
