@@ -4,6 +4,9 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { ImageResponseDto } from './dto/image-response.dto';
 import { plainToInstance } from 'class-transformer';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+@ApiTags('Image')
+@ApiBearerAuth()
 @Controller('images')
 @SerializeOptions({
     excludeExtraneousValues: true
@@ -12,6 +15,8 @@ export class ImageController {
     constructor(private imageService: ImageService) { }
 
     @Post('upload')
+    @ApiOperation({ summary: 'Upload file (image, video)' })
+    @ApiResponse({ status: 201, description: 'Upload file successfully!' })
     @UseInterceptors(FilesInterceptor('files', 10, { storage: memoryStorage() }))
     async uploadFile(
         @UploadedFiles() files: Array<Express.Multer.File>
@@ -28,8 +33,9 @@ export class ImageController {
         return uploadImages
     }
 
-    // show images base on producr || variant || nothing
     @Get('')
+    @ApiOperation({ summary: 'Manage images base on owner' })
+    @ApiResponse({ status: 200, description: 'Show image base on owner successfully!' })
     async getImagesByOwner(@Query('owner') owner: string): Promise<ImageResponseDto[]> {
         const images = await this.imageService.getImagesByOwner(owner)
         return plainToInstance(ImageResponseDto, images)
