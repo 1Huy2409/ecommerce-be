@@ -53,7 +53,6 @@ export class CartService {
             throw new NotFoundException('You dont have any cart!')
         }
         const { variantId, quantity } = cartItemData
-        // check variant exist
         const variant = await this.variantRepository.findOne(
             {
                 where: {
@@ -77,7 +76,6 @@ export class CartService {
             await this.cartItemRepository.save(existingCartItem)
         }
         else {
-            // create new cart item (quantity, priceAtAddition)
             if (quantity > variant.stockQuantity) {
                 throw new BadRequestException('This variant quantity is over stock!')
             }

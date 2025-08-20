@@ -11,7 +11,7 @@ import { CartItemResponseDto } from './dto/cart-item/cart-item-response.dto';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 @ApiTags('Cart')
 @ApiBearerAuth()
-@Controller('carts')
+@Controller('users/me/cart')
 @UseInterceptors(ClassSerializerInterceptor)
 @SerializeOptions({
     excludeExtraneousValues: true

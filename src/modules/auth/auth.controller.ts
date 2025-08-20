@@ -58,7 +58,7 @@ export class AuthController {
         return this.authService.register(registerDTO)
     }
     @Public()
-    @Post('processNewToken')
+    @Post('refresh')
     @ApiOperation({ summary: 'Refresh token' })
     @ApiResponse({ status: 201, description: 'Refresh token successfully!' })
     refreshToken(@Req() req: Request): Promise<{ accessToken: string }> {
