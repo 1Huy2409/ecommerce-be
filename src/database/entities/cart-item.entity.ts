@@ -10,7 +10,10 @@ export class CartItem {
     quantity: number
 
     @Column({ type: 'decimal', precision: 10, scale: 2 })
-    priceAtAddition: number // product base price + variant additionalPrice
+    priceAtAddition: number
+
+    @Column({ type: 'boolean', default: false })
+    isChecked: boolean
 
     @ManyToOne(() => Cart, (cart) => cart.items, {
         nullable: false,

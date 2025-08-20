@@ -100,7 +100,8 @@ export class CartService {
         }
         return finalCart
     }
-    async updateCartItem(cartItemId: string, updateData: UpdateCartItemDto): Promise<CartItem> {
+    async updateCartItem(cartItemId: string, updateData: UpdateCartItemDto): Promise<CartItem | null> {
+        console.log('UPDATE DATA FOR CART ITEM: ', updateData)
         const cartItem = await this.cartItemRepository.findOne(
             {
                 where: { id: cartItemId },
@@ -110,15 +111,23 @@ export class CartService {
         if (!cartItem) {
             throw new NotFoundException('Cart item is not found!')
         }
-        const { quantity } = updateData
+        const { quantity, isChecked } = updateData
         if (quantity) {
             if (quantity > cartItem.productVariant.stockQuantity) {
                 throw new BadRequestException('Variant quantity is over stock!')
             }
             cartItem.quantity = quantity
-            return await this.cartItemRepository.save(cartItem)
+            await this.cartItemRepository.save(cartItem)
         }
-        return cartItem
+        if (isChecked !== undefined) {
+            cartItem.isChecked = isChecked
+            await this.cartItemRepository.save(cartItem)
+        }
+        return await this.cartItemRepository.findOne({
+            where: {
+                id: cartItem.id
+            }
+        })
     }
     async deleteCartItem(cartItemId: string): Promise<{ message: string }> {
         await this.cartItemRepository.delete({ id: cartItemId })

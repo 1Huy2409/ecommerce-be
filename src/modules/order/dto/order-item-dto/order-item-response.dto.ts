@@ -1,21 +1,21 @@
-import { Expose, Type } from "class-transformer";
+import { Expose } from "class-transformer";
 
-export class CartItemResponseDto {
+export class OrderItemResponseDto {
     @Expose()
-    id: string;
-
-    @Expose()
-    quantity: number;
+    id: string
 
     @Expose()
-    priceAtAddition: number;
+    quantity: number
 
     @Expose()
-    isChecked: boolean;
+    priceAtPurchase: number;
+
+    @Expose()
+    totalItemPrice: number;
 
     @Expose()
     get productInfo(): object | undefined {
-        if ((this as any).productVariant && (this as any).productVariant.product) {
+        if ((this as any).productVariant) {
             return {
                 productName: (this as any).productVariant.product.name,
                 basePrice: (this as any).productVariant.product.basePrice,
@@ -25,10 +25,5 @@ export class CartItemResponseDto {
             }
         }
         return undefined
-    }
-
-    @Expose()
-    get totalPrice(): number {
-        return Number(this.priceAtAddition) * this.quantity;
     }
 }

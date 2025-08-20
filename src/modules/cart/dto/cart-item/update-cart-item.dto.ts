@@ -1,5 +1,5 @@
 import { Optional } from "@nestjs/common";
-import { IsNotEmpty, IsNumber } from "class-validator";
+import { IsBoolean, IsNotEmpty, IsNumber } from "class-validator";
 import { ApiProperty } from "@nestjs/swagger";
 
 export class UpdateCartItemDto {
@@ -8,4 +8,9 @@ export class UpdateCartItemDto {
     @Optional()
     @ApiProperty({ example: '10', description: 'Enter your quantity here' })
     quantity?: number
+
+    @Optional()
+    @IsBoolean()
+    @ApiProperty({ example: true, description: 'Enter cartitem status here' })
+    isChecked?: boolean
 }

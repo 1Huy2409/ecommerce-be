@@ -5,16 +5,25 @@ import { Payment } from "./payment.entity";
 
 export enum OrderStatus {
     PENDING = 'pending',
+    CONFIRMED = 'confirmed',
     PROCESSING = 'processing',
     SHIPPED = 'shipped',
     DELIVERED = 'delivered',
     CANCELLED = 'cancelled',
     REFUNDED = 'refunded'
 }
+
+export enum PaymentMethod {
+    COD = 'cod',
+    VNPAY = 'vnpay'
+}
 @Entity("orders")
 export class Order {
     @PrimaryGeneratedColumn('uuid')
     id: string;
+
+    @Column({ unique: true, length: 20 })
+    orderNumber: string
 
     @CreateDateColumn({ type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
     orderDate: Date;
@@ -35,8 +44,12 @@ export class Order {
     })
     status: OrderStatus;
 
-    @Column({ length: 50, nullable: true })
-    paymentMethod: string;
+    @Column({
+        type: 'enum',
+        enum: PaymentMethod,
+        nullable: false
+    })
+    paymentMethod: PaymentMethod;
 
     @Column({ type: 'jsonb' })
     shippingAddress: object;

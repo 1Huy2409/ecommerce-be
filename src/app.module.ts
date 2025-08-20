@@ -10,6 +10,7 @@ import { PermissionModule } from './modules/permission/permission.module';
 import { RoleModule } from './modules/role/role.module';
 import { CacheModule } from './modules/cache/cache.module';
 import { CartModule } from './modules/cart/cart.module';
+import { OrderModule } from './modules/order/order.module';
 
 @Module({
   imports: [
@@ -36,7 +37,7 @@ import { CartModule } from './modules/cart/cart.module';
     CloudinaryModule, 
     ImageModule, 
     PermissionModule, 
-    RoleModule, CartModule
+    RoleModule, CartModule, OrderModule
   ],
   controllers: [],
   providers: [],
