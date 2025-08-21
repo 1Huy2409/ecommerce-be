@@ -59,6 +59,7 @@ export class RoleService {
 
     async updateRole(updateData: UpdateRoleDto, id: string): Promise<Role> {
         const { permissionIds, ...restData } = updateData
+        console.log('PERMISSION IDS ARRAY: ', permissionIds)
         let roleUpdate = await this.rolesRepository.findOne({
             where: { id },
             relations: ['permissions']
@@ -76,17 +77,16 @@ export class RoleService {
         }
         let permissions: Permission[] = []
         if (permissionIds !== undefined) {
-            permissionIds.forEach(async (id) => {
-                const permission = await this.permissionsRepository.findOne({
-                    where: { id }
-                })
+            for (const pid of permissionIds) {
+                const permission = await this.permissionsRepository.findOne({ where: { id: pid } })
                 if (!permission) {
-                    throw new NotFoundException(`Permission with ID ${id} is not found!`)
+                    throw new NotFoundException(`Permission with ID ${pid} is not found!`)
                 }
                 permissions.push(permission)
-            })
+            }
             roleUpdate.permissions = permissions
         }
+
         const savedRole = await this.rolesRepository.save({
             ...roleUpdate,
             ...restData

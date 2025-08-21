@@ -73,6 +73,7 @@ export class PermissionService {
         if (!deletePermission) {
             throw new NotFoundException(`Permission with ID ${id} is not found!`)
         }
+        await this.permissionsRepository.remove(deletePermission)
         return {
             message: 'Delete permission successfully!'
         }

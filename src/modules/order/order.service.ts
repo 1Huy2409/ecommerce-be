@@ -2,13 +2,14 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cart } from 'src/database/entities/cart.entity';
 import { OrderItem } from 'src/database/entities/order-item.entity';
-import { Order } from 'src/database/entities/order.entity';
+import { Order, OrderStatus } from 'src/database/entities/order.entity';
 import { Payment } from 'src/database/entities/payment.entity';
 import { User } from 'src/database/entities/user.entity';
 import { DataSource, EntityManager, Repository } from 'typeorm';
 import { CreateOrderDto } from './dto/order-dto/create-order.dto';
 import { CartService } from '../cart/cart.service';
 import { ProductVariant } from 'src/database/entities/product-variant.entity';
+import { UpdateOrderDto } from './dto/order-dto/update-order.dto';
 
 @Injectable()
 export class OrderService {
@@ -96,6 +97,65 @@ export class OrderService {
                 relations: ['items', 'items.productVariant', 'items.productVariant.product']
             })
         })
+    }
+
+    async getAllOrders(user: User): Promise<Order[]> {
+        let whereCondition = {}
+        if (user.role.name === 'customer') {
+            whereCondition = {
+                user: { id: user.id }
+            }
+        }
+        const orders = await this.orderRepository.find({
+            where: whereCondition
+        })
+        return orders
+    }
+
+    async getOrderById(user: User, id: string): Promise<Order> {
+        let whereCondition = {}
+        if (user.role.name === 'customer') {
+            whereCondition = {
+                user: { id: user.id }
+            }
+        }
+        const order = await this.orderRepository.findOne({
+            where: {
+                id: id,
+                ...whereCondition
+            }
+        })
+        if (!order) {
+            throw new NotFoundException(`Order with ID ${id} is not found!`)
+        }
+        return order
+    }
+
+    async updateOrder(id: string, updateData: UpdateOrderDto): Promise<Order> {
+        const order = await this.orderRepository.findOne({
+            where: { id },
+            relations: ['items', 'items.productVariant', 'items.productVariant.product']
+        })
+        if (!order) {
+            throw new NotFoundException(`Order with ID ${id} is not found!`)
+        }
+        return await this.orderRepository.save({
+            ...order,
+            status: updateData.status
+        })
+    }
+
+    async cancelOrder(id: string): Promise<Order> {
+        const order = await this.orderRepository.findOne({
+            where: { id },
+            relations: ['items', 'items.productVariant', 'items.productVariant.product']
+        })
+        if (!order) {
+            throw new NotFoundException(`Order with ID ${id} is not found!`)
+        }
+        order.status = OrderStatus.CANCELLED
+        await this.orderRepository.save(order)
+        return order
     }
 
     async getOrderByUser(user: User): Promise<Order[]> {
