@@ -8,10 +8,11 @@ import { Cart } from 'src/database/entities/cart.entity';
 import { Payment } from 'src/database/entities/payment.entity';
 import { CartModule } from '../cart/cart.module';
 import { ProductVariant } from 'src/database/entities/product-variant.entity';
+import { OrderCancelRequest } from 'src/database/entities/order-cancel-request.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Order, OrderItem, Cart, Payment, ProductVariant]),
+    TypeOrmModule.forFeature([Order, OrderItem, Cart, Payment, ProductVariant, OrderCancelRequest]),
     CartModule
   ],
   controllers: [OrderController],

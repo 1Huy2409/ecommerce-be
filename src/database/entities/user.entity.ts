@@ -2,6 +2,7 @@ import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateCol
 import { Role } from "./role.entity";
 import { Order } from "./order.entity";
 import { Cart } from "./cart.entity";
+import { OrderCancelRequest } from "./order-cancel-request.entity";
 @Entity("users")
 export class User {
     @PrimaryGeneratedColumn('uuid')
@@ -37,6 +38,12 @@ export class User {
 
     @OneToMany(() => Order, (order) => order.user)
     orders: Order[]
+
+    @OneToMany(() => OrderCancelRequest, (request) => request.requestedBy)
+    requests: OrderCancelRequest[]
+
+    @OneToMany(() => OrderCancelRequest, (request) => request.processedBy)
+    processes: OrderCancelRequest[]
 
     @OneToOne(() => Cart, (cart) => cart.user)
     cart: Cart

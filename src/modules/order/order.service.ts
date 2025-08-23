@@ -1,3 +1,4 @@
+import { CancelRequestResponseDto } from './dto/order-request/cancel-request-response.dto';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cart } from 'src/database/entities/cart.entity';
@@ -5,11 +6,14 @@ import { OrderItem } from 'src/database/entities/order-item.entity';
 import { Order, OrderStatus } from 'src/database/entities/order.entity';
 import { Payment } from 'src/database/entities/payment.entity';
 import { User } from 'src/database/entities/user.entity';
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { DataSource, EntityManager, Not, Repository } from 'typeorm';
 import { CreateOrderDto } from './dto/order-dto/create-order.dto';
 import { CartService } from '../cart/cart.service';
 import { ProductVariant } from 'src/database/entities/product-variant.entity';
 import { UpdateOrderDto } from './dto/order-dto/update-order.dto';
+import { CreateCancelRequest } from './dto/order-request/create-cancel-request.dto';
+import { CancelRequestStatus, OrderCancelRequest } from 'src/database/entities/order-cancel-request.entity';
+import { ProcessCancelRequestDto } from './dto/order-request/process-cancel-request.dto';
 
 @Injectable()
 export class OrderService {
@@ -20,6 +24,8 @@ export class OrderService {
         private orderItemRepository: Repository<OrderItem>,
         @InjectRepository(Cart)
         private cartRepository: Repository<Cart>,
+        @InjectRepository(OrderCancelRequest)
+        private cancelRequestRepository: Repository<OrderCancelRequest>,
         private cartService: CartService,
         private dataSource: DataSource
     ) { }
@@ -37,11 +43,16 @@ export class OrderService {
                 throw new BadRequestException('Cart is empty!')
             }
             let totalAmount = 0
+            let checkedCount = 0
             cart.items.forEach((item) => {
                 if (item.isChecked) {
+                    checkedCount += 1
                     totalAmount += Number(item.priceAtAddition)
                 }
             })
+            if (checkedCount === 0) {
+                throw new BadRequestException('You have not selected a product to order.')
+            }
             const shippingFee = this.calculateShippingFee(shippingAddress)
             const finalAmount = totalAmount + shippingFee
             const orderNumber = this.generateTrackingCode()
@@ -56,13 +67,12 @@ export class OrderService {
                 paymentMethod: paymentMethod
             })
             const savedOrder = await manager.save(Order, newOrder)
-            // cartitems ==> orderitems (only which item isChecked true)
+
             const listCartItems = cart.items
             let listOrderItems: OrderItem[] = []
             for (let i = 0; i < listCartItems.length; i++) {
                 if (listCartItems[i].isChecked) {
                     const currentItem = listCartItems[i]
-                    // check quantity & stock again
                     if (currentItem.quantity > currentItem.productVariant.stockQuantity) {
                         throw new BadRequestException('This order item quantity is over stock!')
                     }
@@ -80,7 +90,6 @@ export class OrderService {
                 }
             }
             savedOrder.items = listOrderItems
-            // payment
             if (paymentMethod) {
                 const newPayment = manager.create(Payment, {
                     transactionId: this.generateTransactionId(),
@@ -99,6 +108,94 @@ export class OrderService {
         })
     }
 
+    async createCancelRequest(requestUser: User, requestData: CreateCancelRequest, orderId: string): Promise<Order | OrderCancelRequest | null> {
+        return await this.dataSource.transaction(async (manager: EntityManager) => {
+            const order = await manager.findOne(Order, {
+                where: { id: orderId, status: Not(OrderStatus.CANCELLED) },
+                relations: ['items', 'items.productVariant', 'items.productVariant.product']
+            })
+            if (!order) {
+                throw new NotFoundException(`Order with ID ${orderId} is not found!`)
+            }
+            if (order.status === OrderStatus.PENDING || order.status === OrderStatus.CONFIRMED) {
+                order.status = OrderStatus.CANCELLED
+                await manager.save(Order, order)
+                for (let i = 0; i < order.items.length; i++) {
+                    let currentItem: OrderItem = order.items[i]
+                    currentItem.productVariant.stockQuantity += currentItem.quantity
+                    await manager.save(ProductVariant, currentItem.productVariant)
+                }
+                return order
+            }
+            else {
+                const request = await manager.findOne(OrderCancelRequest, {
+                    where: {
+                        order: { id: orderId }
+                    }
+                })
+                if (request) {
+                    throw new BadRequestException(`You have sent cancel request for this order before! Please wait for admin approving!`)
+                }
+                const cancelRequest = manager.create(OrderCancelRequest, {
+                    reason: requestData.reason,
+                    order: order,
+                    requestedBy: requestUser
+                })
+                await manager.save(OrderCancelRequest, cancelRequest)
+                return await manager.findOne(OrderCancelRequest, {
+                    where: { id: cancelRequest.id },
+                    relations: ['order', 'order.items', 'order.items.productVariant', 'requestedBy']
+                })
+            }
+        })
+    }
+
+    async handleCancelRequest(processUser: User, requestId: string, processData: ProcessCancelRequestDto): Promise<OrderCancelRequest> {
+        return await this.dataSource.transaction(async (manager: EntityManager) => {
+            const { adminNote, status } = processData
+            const request = await manager.findOne(OrderCancelRequest, {
+                where: {
+                    id: requestId,
+                    status: CancelRequestStatus.PENDING
+                },
+                relations: ['order', 'order.items', 'order.items.productVariant', 'requestedBy']
+            })
+            if (!request) {
+                throw new NotFoundException(`Request with ID ${requestId} is not found!`)
+            }
+            request.adminNote = adminNote
+            request.status = status
+            request.processedBy = processUser
+            request.processedAt = new Date(Date.now())
+            await manager.save(OrderCancelRequest, request)
+            if (request.status === CancelRequestStatus.APPROVE) {
+                const order = request.order
+                order.status = OrderStatus.CANCELLED
+                await manager.save(Order, order)
+                for (let i = 0; i < order.items.length; i++) {
+                    let currentItem: OrderItem = order.items[i]
+                    currentItem.productVariant.stockQuantity += currentItem.quantity
+                    await manager.save(ProductVariant, currentItem.productVariant)
+                }
+            }
+            return request
+        })
+    }
+
+    async getCancelRequest(user: User): Promise<OrderCancelRequest[]> {
+        let whereCondition = {}
+        if (user.role.name === 'customer') {
+            whereCondition = {
+                requestedBy: { id: user.id }
+            }
+        }
+        const requests = await this.cancelRequestRepository.find({
+            where: whereCondition,
+            relations: ['order', 'order.items', 'order.items.productVariant', 'requestedBy']
+        })
+        return requests
+    }
+
     async getAllOrders(user: User): Promise<Order[]> {
         let whereCondition = {}
         if (user.role.name === 'customer') {
@@ -107,7 +204,8 @@ export class OrderService {
             }
         }
         const orders = await this.orderRepository.find({
-            where: whereCondition
+            where: whereCondition,
+            relations: ['items', 'items.productVariant', 'items.productVariant.product']
         })
         return orders
     }
@@ -146,16 +244,23 @@ export class OrderService {
     }
 
     async cancelOrder(id: string): Promise<Order> {
-        const order = await this.orderRepository.findOne({
-            where: { id },
-            relations: ['items', 'items.productVariant', 'items.productVariant.product']
+        return await this.dataSource.transaction(async (mananger: EntityManager) => {
+            const order = await mananger.findOne(Order, {
+                where: { id },
+                relations: ['items', 'items.productVariant', 'items.productVariant.product']
+            })
+            if (!order) {
+                throw new NotFoundException(`Order with ID ${id} is not found!`)
+            }
+            order.status = OrderStatus.CANCELLED
+            await mananger.save(Order, order)
+            for (let i = 0; i < order.items.length; i++) {
+                let currentItem: OrderItem = order.items[i]
+                currentItem.productVariant.stockQuantity += currentItem.quantity
+                await mananger.save(ProductVariant, currentItem.productVariant)
+            }
+            return order
         })
-        if (!order) {
-            throw new NotFoundException(`Order with ID ${id} is not found!`)
-        }
-        order.status = OrderStatus.CANCELLED
-        await this.orderRepository.save(order)
-        return order
     }
 
     async getOrderByUser(user: User): Promise<Order[]> {

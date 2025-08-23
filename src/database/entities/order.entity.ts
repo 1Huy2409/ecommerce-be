@@ -2,6 +2,7 @@ import { Entity, PrimaryGeneratedColumn, CreateDateColumn, Column, UpdateDateCol
 import { User } from "./user.entity";
 import { OrderItem } from "./order-item.entity";
 import { Payment } from "./payment.entity";
+import { OrderCancelRequest } from "./order-cancel-request.entity";
 
 export enum OrderStatus {
     PENDING = 'pending',
@@ -66,6 +67,9 @@ export class Order {
     })
     @JoinColumn({ name: 'user_id' })
     user: User;
+
+    @OneToMany(() => OrderCancelRequest, (request) => request.order)
+    requests: OrderCancelRequest[]
 
     @OneToMany(() => OrderItem, (item) => item.order)
     items: OrderItem[];
