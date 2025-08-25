@@ -53,6 +53,7 @@ export class OrderController {
         return null
     }
 
+    @RequirePermission('order:cancel')
     @Patch(':requestId/cancel-request')
     @ApiOperation({ summary: 'Process cancel request from customer' })
     @ApiResponse({ status: 200, description: 'Handle request successfully!' })
@@ -89,15 +90,6 @@ export class OrderController {
         const user: User = req.user as User
         const order = await this.orderService.getOrderById(user, orderId)
         return plainToInstance(OrderResponseDto, order)
-    }
-
-    @RequirePermission('order:cancel')
-    @Patch(':orderId/cancel')
-    @ApiOperation({ summary: 'Cancel order' })
-    @ApiResponse({ status: 200, description: 'Cancel order successfully!' })
-    async cancelOrder(@Param('orderId', ParseUUIDPipe) orderId: string): Promise<OrderResponseDto> {
-        const cancelledOrder = await this.orderService.cancelOrder(orderId)
-        return plainToInstance(OrderResponseDto, cancelledOrder)
     }
 
     @RequirePermission('order:update')
