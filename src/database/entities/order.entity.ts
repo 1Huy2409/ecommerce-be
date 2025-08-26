@@ -16,7 +16,7 @@ export enum OrderStatus {
 
 export enum PaymentMethod {
     COD = 'cod',
-    VNPAY = 'vnpay'
+    STRIPE = 'stripe'
 }
 @Entity("orders")
 export class Order {

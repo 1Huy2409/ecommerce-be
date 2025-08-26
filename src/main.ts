@@ -3,9 +3,13 @@ import { AppModule } from './app.module';
 import * as cookieParser from 'cookie-parser'
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import * as express from 'express';
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Configure raw body parsing for Stripe webhooks
+  app.use('/api/v1/payments/stripe/webhook', express.raw({ type: 'application/json' }));
 
   app.enableCors();
   app.setGlobalPrefix('api/v1')

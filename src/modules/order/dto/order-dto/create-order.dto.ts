@@ -7,7 +7,7 @@ export class CreateOrderDto {
     @IsEnum(PaymentMethod)
     @ApiProperty({
         enum: PaymentMethod,
-        example: PaymentMethod.COD,
+        example: PaymentMethod.STRIPE,
         description: 'Payment method for the order'
     })
     paymentMethod: PaymentMethod
