@@ -1,10 +1,11 @@
-import { Body, Controller, Get, Headers, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Req } from '@nestjs/common';
+import { Body, Controller, Get, Headers, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Put, Req } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreatePaymentIntentDto } from './dto/create-payment-intent.dto';
 import { StripeService } from './providers/stripe.service';
 import { Payment } from 'src/database/entities/payment.entity';
 import { Public } from 'src/core/decorators/public.decorator';
+import { CodPaymentDto } from './dto/cod-payment.dto';
 @ApiTags('Payment')
 @ApiBearerAuth()
 @Controller('payments')
@@ -21,6 +22,13 @@ export class PaymentController {
         const paymentIntentResult = await this.paymentService.createPaymentIntent(createPaymentIntentData.orderId)
         return paymentIntentResult
     }
+    @Put('cod/payment')
+    @ApiOperation({ summary: 'Handle COD payment API' })
+    @ApiResponse({ status: 200, description: 'Handle COD payment API successfully!' })
+    async handleCodPayment(@Body() codPaymentData: CodPaymentDto): Promise<Payment> {
+        const payment = await this.paymentService.handleCodPayment(codPaymentData)
+        return payment
+    }
 
     @Public()
     @Post('stripe/webhook')
@@ -33,11 +41,11 @@ export class PaymentController {
         try {
             // When using express.raw() middleware, the body is available as Buffer in req.body
             const payload = req.body;
-            
+
             if (!payload) {
                 throw new Error('No webhook payload was provided');
             }
-            
+
             if (!signature) {
                 throw new Error('No stripe signature provided');
             }

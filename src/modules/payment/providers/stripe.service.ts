@@ -26,9 +26,8 @@ export class StripeService {
                     orderId: order.id,
                     orderNumber: order.orderNumber,
                 },
-                payment_method_types: ['card'], // Chỉ dùng cái này
+                payment_method_types: ['card'],
             });
-
             return paymentIntent;
         } catch (error) {
             throw new Error(`Stripe PaymentIntent creation failed: ${error.message}`);

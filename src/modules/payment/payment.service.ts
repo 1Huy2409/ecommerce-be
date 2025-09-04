@@ -5,6 +5,7 @@ import { Order, OrderStatus, PaymentMethod } from 'src/database/entities/order.e
 import { Payment, PaymentStatus } from 'src/database/entities/payment.entity';
 import { Repository } from 'typeorm';
 import { StripeService } from './providers/stripe.service';
+import { CodPaymentDto } from './dto/cod-payment.dto';
 
 @Injectable()
 export class PaymentService {
@@ -17,7 +18,6 @@ export class PaymentService {
     ) { }
 
     async createPaymentIntent(orderId: string): Promise<{ clientSecret: string | null, paymentIntentId: string, publishableKey: string | undefined }> {
-        // return clientSecret, paymentIntentId, publishableKey
         const order = await this.orderRepository.findOne({
             where: {
                 id: orderId
@@ -143,6 +143,30 @@ export class PaymentService {
         console.log(`Payment processing for PaymentIntent: ${paymentIntent.id}`);
     }
 
+    async handleCodPayment(codPaymentData: CodPaymentDto): Promise<Payment> {
+        const { paymentId, status } = codPaymentData
+        // find payment
+        const payment = await this.paymentRepository.findOne(
+            {
+                where: { id: paymentId, status: PaymentStatus.PENDING },
+                relations: ['order']
+            }
+        )
+        if (!payment) {
+            throw new NotFoundException(`Payment with ID ${paymentId} is not found!`)
+        }
+        switch (status) {
+            case PaymentStatus.SUCCESSFUL:
+                payment.status = PaymentStatus.SUCCESSFUL
+                payment.order.status = OrderStatus.DELIVERED
+                break
+            case PaymentStatus.FAILED:
+                payment.status = PaymentStatus.FAILED
+                payment.order.status = OrderStatus.CANCELLED
+                break
+        }
+        return await this.paymentRepository.save(payment)
+    }
     async getPaymentStatus(transactionId: string): Promise<Payment> {
         const payment = await this.paymentRepository.findOne({
             where: {
