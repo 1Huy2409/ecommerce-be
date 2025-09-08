@@ -11,16 +11,31 @@ import { ProductVariantService } from './product-variant.service';
 import { ImageModule } from '../image/image.module';
 import { VariantController } from './product-variant.controller';
 import { RoleModule } from '../role/role.module';
+import { ProductQueueService } from './queue/product-queue.service';
+import { BullModule } from '@nestjs/bullmq';
+import { ProductProcessor } from './processor/product.processor';
+import { VariantProcessor } from './processor/variant.processor';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Product, ProductVariant, Brand, Category]),
     ImageModule,
-    RoleModule
+    RoleModule,
+    BullModule.registerQueue(
+      {
+        name: 'product-queue'
+      },
+      {
+        name: 'variant-queue'
+      }
+    ),
   ],
   controllers: [ProductController, VariantController],
   providers: [
+    ProductQueueService,
     ProductService,
     ProductVariantService,
+    ProductProcessor,
+    VariantProcessor,
     PermissionGuard
   ]
 })

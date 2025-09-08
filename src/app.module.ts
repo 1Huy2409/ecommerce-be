@@ -12,6 +12,7 @@ import { CacheModule } from './modules/cache/cache.module';
 import { CartModule } from './modules/cart/cart.module';
 import { OrderModule } from './modules/order/order.module';
 import { PaymentModule } from './modules/payment/payment.module';
+import { BullModule } from '@nestjs/bullmq';
 
 @Module({
   imports: [
@@ -32,12 +33,18 @@ import { PaymentModule } from './modules/payment/payment.module';
       autoLoadEntities: true,
       synchronize: false
     }),
-    AuthModule, 
-    ProductModule, 
-    UserModule, 
-    CloudinaryModule, 
-    ImageModule, 
-    PermissionModule, 
+    BullModule.forRoot({
+      connection: {
+        host: process.env.REDIS_HOST,
+        port: parseInt(process.env.REDIS_PORT || '6379')
+      }
+    }),
+    AuthModule,
+    ProductModule,
+    UserModule,
+    CloudinaryModule,
+    ImageModule,
+    PermissionModule,
     RoleModule, CartModule, OrderModule, PaymentModule
   ],
   controllers: [],

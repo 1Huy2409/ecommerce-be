@@ -13,6 +13,8 @@ import { Request } from 'express';
 import { User } from 'src/database/entities/user.entity';
 import { RoleService } from '../role/role.service';
 import { CacheService } from '../cache/cache.service';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 @Injectable()
 export class ProductService {
@@ -27,7 +29,7 @@ export class ProductService {
         private variantService: ProductVariantService,
         private roleService: RoleService,
         private dataSource: DataSource,
-        private cacheService: CacheService, // Inject custom cache service
+        private cacheService: CacheService,
     ) { }
 
     async findAllProduct(@Req() req: Request, page: number, limit: number): Promise<Product[]> {
@@ -126,6 +128,7 @@ export class ProductService {
     }
 
     async createProductWithVariant(productData: CreateProductDto): Promise<Product | null> {
+        // validate product
         const { name, description, basePrice, gender, brandId, categoryId, productImageIds, variants } = productData
         const existingBrand = await this.brandsRepository.findOne({ where: { id: brandId } })
         if (!existingBrand) {

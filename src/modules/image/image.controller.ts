@@ -4,7 +4,7 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { ImageResponseDto } from './dto/image-response.dto';
 import { plainToInstance } from 'class-transformer';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 @ApiTags('Image')
 @ApiBearerAuth()
 @Controller('images')
@@ -15,6 +15,21 @@ export class ImageController {
     constructor(private imageService: ImageService) { }
 
     @Post('upload')
+    @ApiConsumes('multipart/form-data')
+    @ApiBody({
+        schema: {
+            type: 'object',
+            properties: {
+                files: {
+                    type: 'array',
+                    items: {
+                        type: 'string',
+                        format: 'binary',
+                    }
+                },
+            },
+        },
+    })
     @ApiOperation({ summary: 'Upload file (image, video)' })
     @ApiResponse({ status: 201, description: 'Upload file successfully!' })
     @UseInterceptors(FilesInterceptor('files', 10, { storage: memoryStorage() }))

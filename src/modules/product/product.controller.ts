@@ -8,6 +8,7 @@ import { PermissionGuard } from '../auth/guards/permission.guard';
 import { RequirePermission } from 'src/core/decorators/permission.decorator';
 import e, { Request } from 'express';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ProductQueueService } from './queue/product-queue.service';
 @ApiTags('Product')
 @Controller('products')
 @UseInterceptors(ClassSerializerInterceptor)
@@ -17,7 +18,8 @@ import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagg
 @UseGuards(PermissionGuard)
 export class ProductController {
     constructor(
-        private productService: ProductService
+        private productService: ProductService,
+        private productQueueService: ProductQueueService
     ) { }
 
     @Get('')
@@ -72,9 +74,9 @@ export class ProductController {
     @ApiBearerAuth()
     @ApiOperation({ summary: 'Create new product' })
     @ApiResponse({ status: 201, description: 'Create new product successfully!' })
-    async createProduct(@Body() productData: CreateProductDto): Promise<ProductResponseDto> {
-        const product = await this.productService.createProductWithVariant(productData)
-        return plainToInstance(ProductResponseDto, product)
+    async createProduct(@Body() productData: CreateProductDto) {
+        const result = await this.productQueueService.createProductWithVariant(productData)
+        return result
     }
 
     @RequirePermission('product:update')
@@ -97,5 +99,21 @@ export class ProductController {
         return {
             message
         }
+    }
+
+    @Post('async')
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Create new product asynchronously' })
+    @ApiResponse({ status: 201, description: 'Product creation flow queued successfully!' })
+    async createProductAsync(@Body() productData: CreateProductDto) {
+        return await this.productQueueService.createProductWithVariant(productData);
+    }
+
+    @Get('flow-status/:flowId')
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Get product creation flow status' })
+    @ApiResponse({ status: 200, description: 'Flow status retrieved successfully!' })
+    async getFlowStatus(@Param('flowId') flowId: string) {
+        return await this.productQueueService.getFlowStatus(flowId);
     }
 }   
